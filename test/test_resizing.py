@@ -12,3 +12,9 @@ def test_resize_directory():
     dest_dir = Path("res_out/")
     resize_directory(src_dir, dest_dir, (256,256))
     return
+
+def test_label_resize_directory():
+    src_l_dir = Path("res/label")
+    dest_l_dir = Path("res_out/label")
+    resize_directory(src_l_dir, dest_l_dir, (256,256))
+    return

@@ -31,10 +31,18 @@ def augment_image(
     --------
         (np.ndarrray) augmented image and (np.ndarray) label image
     """
-    transform = v2.Compose([v2.RandomRotation(degrees=rand_rot),
-        v2.RandomHorizontalFlip(p=rand_hflip)])
-    transform_1 = v2.Compose([v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit), 
-                v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s)])    
+    transform = v2.Compose(
+        [
+            v2.RandomRotation(degrees=rand_rot),
+            v2.RandomHorizontalFlip(p=rand_hflip)
+        ]
+        )
+    transform_1 = v2.Compose(
+        [
+            v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit), 
+            v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s)
+        ]
+        )    
     img = transform_1(img) # separated out color jitter from other transforms
     return transform(img, img_lab) 
 
@@ -80,7 +88,7 @@ def aug_directory(
     label_info=list()
     for image_path in src_dir.iterdir():
         if image_path.suffix.lower() in accepted_file_types:
-             with Image.open(image_path) as img, Image.open(src_dir_lab / f"{Path(image_path).stem}.png") as img_lab: # RT added to open label image (***hard wired .png extension at the moment***)
+            with Image.open(image_path) as img, Image.open(src_dir_lab / f"{Path(image_path).stem}.png") as img_lab: # RT added to open label image (***hard wired .png extension at the moment***)
 #                img = img.convert("RGB")  
 #                img_lab = img_lab.convert("L") 
                 count += 1

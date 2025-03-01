@@ -3,12 +3,15 @@ import argparse
 import numpy as np
 import torch
 from torchinfo import summary
+
 from models.trainer import Trainer
 from models.unet import UNet
+from models.dataset import SegmentationDataset
+from torch.utils.data import random_split
+
+from utils import seed_everything
 
 seed = 100
-
-np.random.seed(seed) ### Randomness for cross val
 
 
 def main(args):
@@ -19,41 +22,22 @@ def main(args):
         args (Namespace): arguments that were parsed from the command line (see at the end 
                         of this file). Their value can be accessed as "args.argument".
     """
+    ## 0. seed randomness
+    seed_everything(seed=seed)
+    
     ## 1. Load data
-    xtrain = None
-    ytrain = None
-    xval = None
-    yval = None
-    xtest = None
-    ytest = None
+    x_y_train = None ## SegmentationDataset(...)
+    x_y_val = None
+    x_y_test = None
 
     ## 2. Make a validation set
-    if not args.test:
-        N = xtrain.shape[0]
-        all_ind = np.arange(N)
-        split_ratio = 0.2
-        split_size = int(split_ratio * N)
+    train_size = int(0.8 * len(x_y_train))
+    val_size = len(x_y_train) - train_size
 
-        ################### RANDOM SHUFFLING ################
-        all_ind = np.random.permutation(all_ind)
-        #####################################################
-
-        ########### TRAINING AND VALIDATION INDICES #########
-        val_ind = all_ind[: split_size]
-        train_ind = np.setdiff1d(all_ind, val_ind, assume_unique=True)
-        #####################################################
-
-        xtrain_original = xtrain
-        ytrain_original = ytrain
-
-        xtrain = xtrain_original[train_ind]
-        xtest = xtrain_original[val_ind]
-
-        xval = ytrain_original[val_ind]
-        yval = ytrain_original[train_ind]
+    x_y_train, x_y_val = random_split(x_y_train, [train_size, val_size])
 
 
-    ## 3. Selecting device
+    ## 3. Selecting device (CPU/GPU)
     device = torch.device("cpu")
     if args.device == "cuda":
         if torch.cuda.is_available():
@@ -84,7 +68,7 @@ def main(args):
 
 
     ## 4. Train and evaluate the method
-    preds_train = method_obj.fit(xtrain, ytrain)
+    preds_train = method_obj.fit(x_y_train)
     # Predict on unseen data
     preds = method_obj.predict(xval)
 

@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 
 from ..utils import IoU
 
@@ -29,8 +30,8 @@ class Trainer(object):
         self.model = model
         self.batch_size = batch_size
 
-        self.criterion = nn.CrossEntropyLoss() ##CHANGE THIS
-        self.optimizer = torch.optim.Adam(model.parameters(), lr,weight_decay=5*1e-3)
+        self.criterion = nn.CrossEntropyLoss() 
+        self.optimizer = torch.optim.Adam(model.parameters(), lr,weight_decay=5*1e-3) ###CHANGE THIS
         ###torch.optim.RAdam()
         self.device = device
 
@@ -67,10 +68,10 @@ class Trainer(object):
             y = y.to(self.device)
             y = y.long()
             # 5.2 Run forward pass.
-            predicted = self.model.forward(x)
+            logits = self.model.forward(x)
             
             # 5.3 Compute loss (using 'criterion').
-            loss = self.criterion(predicted,y)
+            loss = self.criterion(logits,y)
             
             # 5.4 Run backward pass.
             loss.backward()
@@ -83,7 +84,7 @@ class Trainer(object):
 
             print('\rEp {}/{}, it {}/{}: loss train: {:.2f}, accuracy train: {:.2f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
-                        IoU(predicted, y)), end='')
+                        IoU(logits, y)), end='')
 
     def predict_torch(self, dataloader):
         """
@@ -106,48 +107,40 @@ class Trainer(object):
         pred_labels = []
         with torch.no_grad():
             for it, x in enumerate(dataloader):
-                x = x[0]
+                x = x[0] ### x is a tuple
                 x = x.to(self.device)
                 y = self.model(x)
-                pred_labels.append(torch.argmax(y, dim=1)) ### change here
+                pred_labels.append(torch.argmax(y, dim=2)) ### want to take the max along channels
         return torch.cat(pred_labels)
     
-    def fit(self, training_data, training_labels):
+    def fit(self, training_data : Dataset):
         """
         Trains the model, returns predicted labels for training data.
 
-        This serves as an interface between numpy and pytorch.
-
         Arguments:
-            training_data (array): training data of shape (N,D)
-            training_labels (array): regression target of shape (N,)
+            training_data (Dataset): training data and labels
         Returns:
             pred_labels (array): target of shape (N,)
         """
-
-        # First, prepare data for pytorch
-        train_dataset = TensorDataset(torch.from_numpy(training_data).float(), 
-                                      torch.from_numpy(training_labels))
-        train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        train_dataloader = DataLoader(training_data, batch_size=self.batch_size, shuffle=True)
         
         self.train_all(train_dataloader)
 
         return self.predict(training_data)
 
-    def predict(self, test_data):
+    def predict(self, test_data : Dataset):
         """
         Runs prediction on the test data.
 
         This serves as an interface between numpy and pytorch.
         
         Arguments:
-            test_data (array): test data of shape (N,D)
+            test_data (D): test data of shape (N,D)
         Returns:
             pred_labels (array): labels of shape (N,)
         """
         # First, prepare data for pytorch
-        test_dataset = TensorDataset(torch.from_numpy(test_data).float())
-        test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+        test_dataloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=False)
 
         pred_labels = self.predict_torch(test_dataloader)
 

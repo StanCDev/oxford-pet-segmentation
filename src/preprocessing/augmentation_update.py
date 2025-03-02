@@ -34,16 +34,23 @@ def augment_image(
     transform = v2.Compose(
         [
             v2.RandomRotation(degrees=rand_rot),
-            v2.RandomHorizontalFlip(p=rand_hflip)
+            v2.RandomHorizontalFlip(p=rand_hflip), 
+            v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s, interpolation=Image.NEAREST)
         ]
         )
     transform_1 = v2.Compose(
         [
-            v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit), 
-            v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s)
+            v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit)
         ]
-        )    
+        ) 
+#    transform_2 = v2.Compose(
+#        [
+#            v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s, interpolation=Image.NEAREST)]
+#        )   
+    
+    
     img = transform_1(img) # separated out color jitter from other transforms
+#    img, img_lab = transform_2(img, img_lab)     
     return transform(img, img_lab) 
 
 def aug_directory(
@@ -89,8 +96,8 @@ def aug_directory(
     for image_path in src_dir.iterdir():
         if image_path.suffix.lower() in accepted_file_types:
             with Image.open(image_path) as img, Image.open(src_dir_lab / f"{Path(image_path).stem}.png") as img_lab: # RT added to open label image (***hard wired .png extension at the moment***)
-#                img = img.convert("RGB")  
-#                img_lab = img_lab.convert("L") 
+                img = img.convert("RGB")  
+                img_lab = img_lab.convert("L") 
                 count += 1
                 out_image, out_lab = augment_image(img=img, img_lab = img_lab, col_jit=col_jit, rand_rot=rand_rot, rand_hflip=rand_hflip, el_trans_a=el_trans_a, el_trans_s=el_trans_s)   
                 out_image.save(dest_dir / f"{Path(image_path).name}")

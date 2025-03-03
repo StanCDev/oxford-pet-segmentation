@@ -2,11 +2,11 @@
 This module provides functions to resize images in a common directory to a uniform dimension
 """
 from pathlib import Path
-from torchvision.transforms import v2
+from torchvision.transforms import v2, InterpolationMode
 from PIL import Image
 import numpy as np
 
-def resize_image(img, dim : tuple[int,int]) -> np.ndarray:
+def resize_image(img, dim : tuple[int,int], interpolation_mode : InterpolationMode = InterpolationMode.BILINEAR) -> np.ndarray:
     """
     Resize a numpy array of type uint8 to specified dimensions
 
@@ -23,14 +23,14 @@ def resize_image(img, dim : tuple[int,int]) -> np.ndarray:
     ## data = resize(img, dim, anti_aliasing=True) * 256
     ### Note that this is the same type as output array
     ###return data.astype(np.uint8)
-    transform = v2.Resize(dim, antialias=True)
+    transform = v2.Resize(dim, antialias=True, interpolation=interpolation_mode)
     return transform(img)
 
 def resize_directory(
-        src_dir : Path, 
-        dest_dir: Path, 
+        src_dir : Path,
         dim : tuple[int,int], 
-        print_progress : bool = True
+        print_progress : bool = True,
+        interpolation_mode : InterpolationMode = InterpolationMode.BILINEAR
         ) -> None:
     """
     Resize all images in a directory to specified dimensions
@@ -58,9 +58,11 @@ def resize_directory(
     for image_path in src_dir.iterdir():
         if image_path.suffix.lower() in accepted_file_types:
             with Image.open(image_path) as img:
+                img = img.convert("RGB")
                 count += 1
-                out_image = resize_image(img=img, dim=dim)
-                out_image.save(dest_dir / f"{Path(image_path).name}")
+                out_image = resize_image(img=img, dim=dim, interpolation_mode=interpolation_mode)
+                # out_image.save(dest_dir / f"{Path(image_path).name}")
+                out_image.save(image_path)
                 if print_progress:
                     print(f"Resized {count} images / {nbr_images}")
     return

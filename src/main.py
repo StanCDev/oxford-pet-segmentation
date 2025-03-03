@@ -28,9 +28,9 @@ def main(args):
 
     ## 1. Load data
     x_y_train = SegmentationDataset(
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/Dataset/resized/train"), 
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/Dataset/resized/label"),
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/CV_mini_project/res/mapping.json")
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/train"), 
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/label"),
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json")
         )
     x_y_val = None
     x_y_test = None

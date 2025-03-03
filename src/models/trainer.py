@@ -31,9 +31,12 @@ class Trainer(object):
         self.batch_size = batch_size
 
         self.criterion = nn.CrossEntropyLoss() 
-        self.optimizer = torch.optim.SGD(model.parameters(), lr, momentum=.99) ###CHANGE THIS
+        self.optimizer = torch.optim.SGD(model.parameters(), lr) ###CHANGE THIS
         ###torch.optim.RAdam()
         self.device = device
+
+        self.iter_X = []
+        self.loss_Y = []
 
     def train_all(self, dataloader):
         """
@@ -81,7 +84,9 @@ class Trainer(object):
             # 5.6 Zero-out the accumulated gradients.
             self.model.zero_grad()
 
-            print('\rEp {}/{}, it {}/{}: loss train: {:.2f}, accuracy train: {:.2f}'.
+            #5.7 Save loss and iteration number
+
+            print('\rEp {}/{}, it {}/{}: loss train: {:.5f}, accuracy train: {:.2f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
                         0.33), end='') #IoU(logits, y)
 

@@ -23,42 +23,39 @@ def seed_everything(seed):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
-def color_to_mask(r: int, g: int, b: int):
-    color_map = {
-        WHITE: BACKGROUND,
-        BLACK: BACKGROUND,
-        GREEN: DOG,
-        RED: CAT,
-    }
-    if not((r,g,b) in color_map):
-        raise ValueError(f"mask color is not WHITE/BLACK/RED/GREEN but ({r},{g},{b})")
-    else:
-        return color_map[(r,g,b)]
 
-def label_to_one_hot(y : Image):
+COLOR_MAP = {
+    WHITE: BACKGROUND,
+    BLACK: BACKGROUND,
+    GREEN: DOG,
+    RED: CAT,
+}
+
+def label_to_one_hot(y: Image):
     """
-    CHANGE THIS CODE IT IS INEFFICIENT
-
-    Convert a PIL image label of size (w,h,3) to a one hot representation of the mask (w,h,3) as a numpy array.
+    Convert a PIL image label (w,h,3) to a one-hot mask (w,h,3) as a numpy array.
     (1,0,0) = cat, (0,1,0) = dog, (0,0,1) = background.
-    Note that in the original image: red = cat, green = dog, black = background, white = border
     """
+
+    # Ensure input image has 3 channels
     data = np.asarray(y,dtype=np.uint8)
     w, h, ch = data.shape
     if (ch != 3):
         raise ValueError(f"Label image expects 3 channels, obtained = {ch}")
-    
-    
-    out = np.zeros((w,h,3))
-    for i in range(w):
-        for j in range(h):
-            rgb = data[i,j]
-            r = rgb[0]
-            g = rgb[1]
-            b = rgb[2]
-            out[i,j] = color_to_mask(r,g,b)
-    return out
 
+    # Create an empty output array
+    out = np.zeros(data.shape)
+
+    # Generate a mask for each class using NumPy indexing
+    for color, label in COLOR_MAP.items():
+        mask = np.all(data == np.array(color), axis=-1)  # Find pixels matching the color
+        out[mask] = label  # Assign corresponding one-hot value
+
+    # Check for any unmapped pixels
+    if not np.all(np.any(out, axis=-1)):  # If any pixel is still (0,0,0), it's an error
+        raise ValueError("Label image contains unknown colors.")
+
+    return out
 
 
 # Metrics

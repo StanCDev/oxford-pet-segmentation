@@ -5,7 +5,7 @@ from pathlib import Path
 # Add the src directory to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from preprocessing.augmentation_update import aug_directory, augment_image
+from preprocessing.augmentation import aug_directory, augment_image
 
 
 def test_aug_directory():

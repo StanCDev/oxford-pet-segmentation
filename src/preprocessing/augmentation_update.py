@@ -13,7 +13,9 @@ def augment_image(
     rand_rot : float, 
     rand_hflip : float,
     el_trans_a : float,
-    el_trans_s : float
+    el_trans_s : float,
+    el_trans_prob : float,
+    col_jit_prob : float
     ) -> np.ndarray: 
     """
     augment a numpy array of type uint8 with color jitter, random rotation and random horizontal flip
@@ -27,30 +29,45 @@ def augment_image(
         rand_rot (float): random rotation probability factor
         rand_hflip (float): random horizontal flip probability factor
         el_trans_a and el_trans_s are the alpha and sigma values for the elastic transform
+        el_trans_prob : float is the probability of applying the elastic transform
+        col_jit_prob : float is the probability of applying the color jitter
     Returns:
     --------
         (np.ndarrray) augmented image and (np.ndarray) label image
     """
-    transform = v2.Compose(
+    '''transform = v2.Compose(
         [
             v2.RandomRotation(degrees=rand_rot),
             v2.RandomHorizontalFlip(p=rand_hflip), 
             v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s, interpolation=Image.NEAREST)
         ]
         )
+        '''
+    #generates transformation that applies elastic transforms to image and labels with defined probability factor
+    random_apply_transform = v2.RandomApply([
+                        v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s, interpolation=Image.NEAREST)
+        ], p= el_trans_prob)
+    
+    #generates transformation to apply  random rotation and horizontal flip to all images, and random elastic transform defined above
+    transform = v2.Compose([v2.RandomRotation(degrees=rand_rot),
+            v2.RandomHorizontalFlip(p=rand_hflip), random_apply_transform])
+
+    '''
     transform_1 = v2.Compose(
         [
             v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit)
         ]
         ) 
-#    transform_2 = v2.Compose(
-#        [
-#            v2.ElasticTransform(alpha = el_trans_a, sigma = el_trans_s, interpolation=Image.NEAREST)]
-#        )   
-    
-    
-    img = transform_1(img) # separated out color jitter from other transforms
-#    img, img_lab = transform_2(img, img_lab)     
+    '''
+    #Random apply color jitter to image only with 50% probability
+    random_apply_transform_1 = v2.RandomApply([
+            v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit)
+        ], p=col_jit_prob)
+    transform_1 = v2.Compose(
+        [random_apply_transform_1]
+        )
+
+    img = transform_1(img) # separated out color jitter from other transforms   
     return transform(img, img_lab) 
 
 def aug_directory(
@@ -63,6 +80,8 @@ def aug_directory(
         rand_hflip : float,
         el_trans_a : float,
         el_trans_s : float,
+        el_trans_prob : float,
+        col_jit_prob : float,   
         print_progress : bool = True
         ) -> None:
     """
@@ -79,6 +98,8 @@ def aug_directory(
         rand_rot (float): random rotation factor (degrees)
         rand_hflip (float): random horizontal flip factor
         el_trans_a and el_trans_s are the alpha and sigma values for the elastic transform
+        el_trans_prob : float is the probability of applying the elastic transform
+        col_jit_prob : float is the probability of applying the color jitter
         print_progress (bool): obtain a progress bar showing number of resized images out of total count, default=True.
 
     Returns:
@@ -97,9 +118,9 @@ def aug_directory(
         if image_path.suffix.lower() in accepted_file_types:
             with Image.open(image_path) as img, Image.open(src_dir_lab / f"{Path(image_path).stem}.png") as img_lab: # RT added to open label image (***hard wired .png extension at the moment***)
                 img = img.convert("RGB")  
-                img_lab = img_lab.convert("L") 
+                img_lab = img_lab.convert("RGB") 
                 count += 1
-                out_image, out_lab = augment_image(img=img, img_lab = img_lab, col_jit=col_jit, rand_rot=rand_rot, rand_hflip=rand_hflip, el_trans_a=el_trans_a, el_trans_s=el_trans_s)   
+                out_image, out_lab = augment_image(img=img, img_lab = img_lab, col_jit=col_jit, rand_rot=rand_rot, rand_hflip=rand_hflip, el_trans_a=el_trans_a, el_trans_s=el_trans_s, el_trans_prob=el_trans_prob, col_jit_prob=col_jit_prob)   
                 out_image.save(dest_dir / f"{Path(image_path).name}")
                 out_lab.save(dest_dir_lab / f"{Path(image_path).stem}.png") 
                 if print_progress:

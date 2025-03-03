@@ -15,5 +15,5 @@ def test_aug_directory():
     src_dir_lab = Path("res_out/label")
     dest_dir_lab = Path("res_aug/label")
 # dest_dir_lab and src_dir_lab included for labels
-    aug_directory(src_dir, dest_dir, src_dir_lab, dest_dir_lab, col_jit = 0.5, rand_rot = 45, rand_hflip = 0.5, el_trans_a = 50, el_trans_s =5) # Test with % probability for colorjitter, % for random rotation and % for random horizontal flip
+    aug_directory(src_dir, dest_dir, src_dir_lab, dest_dir_lab, col_jit = 0.5, rand_rot = 45, rand_hflip = 0.5, el_trans_a = 50, el_trans_s =5, el_trans_prob= 0.1, col_jit_prob = 0.5)     
     return

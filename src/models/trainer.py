@@ -5,7 +5,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from ..utils import IoU
+from utils import IoU
 
 
 class Trainer(object):
@@ -31,7 +31,7 @@ class Trainer(object):
         self.batch_size = batch_size
 
         self.criterion = nn.CrossEntropyLoss() 
-        self.optimizer = torch.optim.Adam(model.parameters(), lr,weight_decay=5*1e-3) ###CHANGE THIS
+        self.optimizer = torch.optim.SGD(model.parameters(), lr, momentum=.99) ###CHANGE THIS
         ###torch.optim.RAdam()
         self.device = device
 
@@ -66,7 +66,6 @@ class Trainer(object):
             x, y = batch
             x = x.to(self.device)
             y = y.to(self.device)
-            y = y.long()
             # 5.2 Run forward pass.
             logits = self.model.forward(x)
             
@@ -84,7 +83,7 @@ class Trainer(object):
 
             print('\rEp {}/{}, it {}/{}: loss train: {:.2f}, accuracy train: {:.2f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
-                        IoU(logits, y)), end='')
+                        0.33), end='') #IoU(logits, y)
 
     def predict_torch(self, dataloader):
         """

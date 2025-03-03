@@ -1,8 +1,9 @@
 import argparse
 
-import numpy as np
 import torch
 from torchinfo import summary
+
+from pathlib import Path
 
 from models.trainer import Trainer
 from models.unet import UNet
@@ -24,9 +25,13 @@ def main(args):
     """
     ## 0. seed randomness
     seed_everything(seed=seed)
-    
+
     ## 1. Load data
-    x_y_train = None ## SegmentationDataset(...)
+    x_y_train = SegmentationDataset(
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/Dataset/resized/train"), 
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/Dataset/resized/label"),
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer Vision/MP/CV_mini_project/res/mapping.json")
+        )
     x_y_val = None
     x_y_test = None
 
@@ -55,7 +60,7 @@ def main(args):
     model = None
 
     if args.nn_type == "unet":
-        model = UNet(0,0,0)
+        model = UNet(w=256,h=256,ch=3, ch_mult=8)
     else:
         raise ValueError("Inputted model is not a valid model")
 
@@ -70,14 +75,14 @@ def main(args):
     ## 4. Train and evaluate the method
     preds_train = method_obj.fit(x_y_train)
     # Predict on unseen data
-    preds = method_obj.predict(xval)
+    # preds = method_obj.predict(xval)
 
     ## 5. Evaluation metrics
 
     ## 6. Saving the model
     if args.save != "NONE":
         torch.save(model.state_dict(), args.save)
-    np.save("predictions", preds)
+    # np.save("predictions", preds)
 
 
 

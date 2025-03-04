@@ -28,15 +28,31 @@ def main(args) -> None:
 
     ###2. Resize all images
     if args.resize:
-        resize_directory(train, (256,256), False)
-        resize_directory(label, (256,256), False,interpolation_mode=InterpolationMode.NEAREST)
+        resize_directory(train, (256,256), True)
+        resize_directory(label, (256,256), True,interpolation_mode=InterpolationMode.NEAREST)
 
     ###3. Augment all resized images
     if args.augment:
-        aug_directory(train, None, label, None, col_jit = 0.5, rand_rot = 45, rand_hflip = 0.5, el_trans_a = 50, el_trans_s =5, el_trans_prob= 0.1, col_jit_prob = 0.5, in_place=True) 
+        aug_directory(
+            train, 
+            None, 
+            label, 
+            None, 
+            col_jit = 0.5, 
+            rand_rot = 45, 
+            rand_hflip = 0.5, 
+            el_trans_a = 50, 
+            el_trans_s =5, 
+            el_trans_prob= 0.1, 
+            col_jit_prob = 0.5, 
+            in_place=True
+        ) 
+
+        train_list = train.iterdir()
+        label_list = label.iterdir()
     ###4. Create json mapping
     if args.json_file:
-        make_json_file(label,label,Path(args.json))
+        make_json_file(train,label,Path(args.json))
     return
 
 

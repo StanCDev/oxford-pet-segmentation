@@ -118,8 +118,11 @@ def aug_directory(
                     count += 1
                     out_image, out_lab = augment_image(img=img, img_lab = img_lab, col_jit=col_jit, rand_rot=rand_rot, rand_hflip=rand_hflip, el_trans_a=el_trans_a, el_trans_s=el_trans_s, el_trans_prob=el_trans_prob, col_jit_prob=col_jit_prob)
                     if in_place:
-                        out_image.save(image_path)
-                        out_lab.save(label_path) 
+                        train_ext = image_path.suffix.lower()
+                        out_image.save(image_path.parent / (image_path.stem + "_aug" + train_ext))
+
+                        label_ext = label_path.suffix.lower()
+                        out_lab.save(label_path.parent / (label_path.stem + "_aug" + label_ext)) 
                     else:
                         out_image.save(dest_dir / f"{Path(image_path).name}")
                         out_lab.save(dest_dir_lab / f"{Path(image_path).stem}.png") 

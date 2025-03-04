@@ -58,11 +58,13 @@ def main(args):
 
     ## 3. Initialize the method you want to use.
     model = None
-
     if args.nn_type == "unet":
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
     else:
         raise ValueError("Inputted model is not a valid model")
+    
+    if args.load is not None:
+        model.load_state_dict(torch.load(args.load, weights_only=True))
 
     summary(model)
 
@@ -79,8 +81,8 @@ def main(args):
 
     ## 5. Evaluation metrics
 
-    ## 6. Saving the model
-    if args.save != "NONE":
+    ## 6. Saving and loading the model
+    if args.save is not None:
         torch.save(model.state_dict(), args.save)
     # np.save("predictions", preds)
 
@@ -89,7 +91,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data', default="dataset", type=str, help="path to your dataset")
     parser.add_argument('--nn_type', default="unet",
                         help="which network architecture to use, it can be 'unet' | 'autoencoder' | 'CLIP' | 'prompt'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
@@ -97,8 +98,8 @@ if __name__ == '__main__':
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")
 
     ### Pytorch saving / loading models
-    parser.add_argument('--save', default="NONE", type=str, help="path where you want to save your model")
-    parser.add_argument('--load', default="NONE", type=str, help="path where you want to load your model")
+    parser.add_argument('--save', default=None, type=str, help="path where you want to save your model")
+    parser.add_argument('--load', default=None, type=str, help="path where you want to load your model")
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")

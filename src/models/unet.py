@@ -20,8 +20,8 @@ class ConvBlock(nn.Module):
                 padding=1,
                 padding_mode=self.padding_mode
             ),
-            nn.ReLU()
-            ,
+            nn.BatchNorm2d(num_features=out_ch),
+            nn.ReLU(),
             nn.Conv2d(
                 in_channels= out_ch,
                 out_channels= out_ch,
@@ -29,6 +29,7 @@ class ConvBlock(nn.Module):
                 padding=1,
                 padding_mode=self.padding_mode
             ),
+            nn.BatchNorm2d(num_features=out_ch),
             nn.ReLU()
         )
 
@@ -109,7 +110,11 @@ class UNet(nn.Module):
             padding=1
         )
         self.conv9 = ConvBlock(2 * factor, factor)
-        self.conv10 = ConvBlock(factor, ch)
+        self.conv10 = nn.Conv2d(
+                in_channels= factor,
+                out_channels= ch,
+                kernel_size=1
+            )
 
     def forward(self, x):
         """

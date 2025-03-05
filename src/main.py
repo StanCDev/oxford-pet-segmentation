@@ -10,7 +10,7 @@ from models.unet import UNet
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
-from utils import seed_everything
+from utils import seed_everything, plot_loss_iter
 
 seed = 100
 
@@ -36,7 +36,9 @@ def main(args):
     x_y_test = None
 
     ## 2. Make a validation set
-    train_size = int(0.8 * len(x_y_train))
+    if not(args.cv_ratio >= 0 and args.cv_ratio <= 1):
+        raise ValueError(f"cv_ratio must be between 0 and 1. Input = {args.cv_ratio}")
+    train_size = int(args.cv_ratio * len(x_y_train))
     val_size = len(x_y_train) - train_size
 
     x_y_train, x_y_val = random_split(x_y_train, [train_size, val_size])
@@ -80,6 +82,7 @@ def main(args):
     # preds = method_obj.predict(xval)
 
     ## 5. Evaluation metrics
+    plot_loss_iter(method_obj.loss)
 
     ## 6. Saving and loading the model
     if args.save is not None:
@@ -103,6 +106,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
+
+    parser.add_argument('--cv_ratio', type=float, default=0.8,help="ratio of data for train data set. 1 - cv_ratio is ratio of data for validation set. Value must be between 0 and 1")
 
     args = parser.parse_args()
     main(args)

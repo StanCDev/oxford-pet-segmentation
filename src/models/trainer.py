@@ -30,13 +30,14 @@ class Trainer(object):
         self.model = model
         self.batch_size = batch_size
 
-        self.criterion = nn.CrossEntropyLoss() 
+        self.criterion : nn.CrossEntropyLoss = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(model.parameters(), lr) ###CHANGE THIS
         ###torch.optim.RAdam()
         self.device = device
 
-        self.iter_X = []
-        self.loss_Y = []
+        self.loss = []
+        self.IoUs = []
+        # ...
 
     def train_all(self, dataloader):
         """
@@ -71,7 +72,6 @@ class Trainer(object):
             y = y.to(self.device)
             # 5.2 Run forward pass.
             logits = self.model.forward(x)
-            
             # 5.3 Compute loss (using 'criterion').
             loss = self.criterion(logits,y)
             
@@ -85,6 +85,7 @@ class Trainer(object):
             self.model.zero_grad()
 
             #5.7 Save loss and iteration number
+            self.loss.append(loss.data.cpu().numpy())
 
             print('\rEp {}/{}, it {}/{}: loss train: {:.5f}, accuracy train: {:.2f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
@@ -113,8 +114,10 @@ class Trainer(object):
             for it, x in enumerate(dataloader):
                 x = x[0] ### x is a tuple
                 x = x.to(self.device)
-                y = self.model(x)
-                pred_labels.append(torch.argmax(y, dim=2)) ### want to take the max along channels
+                y = self.model(x) # N, ch, h, w
+                assert y.shape == x.shape, f"x and y should have same shape: x ({x.shape}), y ({y.shape})"
+                # print(torch.argmax(y, dim=1).shape)
+                pred_labels.append(torch.argmax(y, dim=1)) ### want to take the max along channels
         return torch.cat(pred_labels)
     
     def fit(self, training_data : Dataset):

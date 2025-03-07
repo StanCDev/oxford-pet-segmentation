@@ -4,6 +4,8 @@ import os
 import random
 from PIL import Image
 
+import matplotlib.pyplot as plt
+
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 RED = (128,0,0) ## as shown in the input data
@@ -62,3 +64,16 @@ def label_to_one_hot(y: Image):
 #########
 def IoU(y, y_pred):
     return 0
+
+
+
+
+# Plotting
+#########
+def plot_loss_iter(loss: list):
+    X = np.array([i for i in range(len(loss))])
+    Y = np.array(loss)
+    plt.plot(X, Y)
+    plt.xlabel("Iteration number")
+    plt.ylabel("loss")
+    plt.show()

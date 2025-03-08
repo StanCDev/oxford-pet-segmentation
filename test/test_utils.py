@@ -44,3 +44,12 @@ def test_on_images():
                     mask_value = result[i,j,:]
                     assert mask_value.size == 3
                     assert np.all(COLOR_MAP.get((r,g,b)) == mask_value), f"bad mask value. (r,g,b) = ({r},{g},{b}). Expected mask = {COLOR_MAP.get(r,g,b)} got {mask_value}"
+
+
+# def test_IoU():
+#     labels = Path("res_out/label/")
+#     for image_path in labels.iterdir():
+#         if image_path.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+#             image = Image.open(image_path).convert("RGB")
+#             temp = np.array(image)
+#             arr = np.zeros((1))

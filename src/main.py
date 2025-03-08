@@ -10,7 +10,7 @@ from models.unet import UNet
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
-from utils import seed_everything, plot_loss_iter
+from utils import seed_everything, plot_loss_iter, IoU
 
 seed = 100
 
@@ -77,7 +77,12 @@ def main(args):
 
 
     ## 4. Train and evaluate the method
-    preds_train = method_obj.fit(x_y_train)
+    preds_train = None
+    if args.train:
+        preds_train = method_obj.fit(x_y_train)
+    else:
+        preds_train = method_obj.predict(x_y_train)
+    print(f"IoU: {IoU(method_obj.truth_labels.to_numpy(), preds_train.to_numpy())}")
     # Predict on unseen data
     # preds = method_obj.predict(xval)
 
@@ -103,6 +108,8 @@ if __name__ == '__main__':
     ### Pytorch saving / loading models
     parser.add_argument('--save', default=None, type=str, help="path where you want to save your model")
     parser.add_argument('--load', default=None, type=str, help="path where you want to load your model")
+
+    parser.add_argument('--train',action="store_true",default=False)
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")

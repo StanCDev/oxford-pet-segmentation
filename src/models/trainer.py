@@ -87,9 +87,15 @@ class Trainer(object):
             #5.7 Save loss and iteration number
             self.loss.append(loss.data.cpu().numpy())
 
-            print('\rEp {}/{}, it {}/{}: loss train: {:.5f}, accuracy train: {:.2f}'.
+            #5.8
+            y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
+            y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
+
+            IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+            self.IoUs.append(IoU_score)
+            print('\rEp {}/{}, it {}/{}: loss train: {:.3f}, IoU train: {:.3f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
-                        0.33), end='') #IoU(logits, y)
+                        IoU_score), end='') #IoU(logits, y)
 
     def predict_torch(self, dataloader):
         """
@@ -116,7 +122,6 @@ class Trainer(object):
                 x = x.to(self.device)
                 y = self.model(x) # N, ch, h, w
                 assert y.shape == x.shape, f"x and y should have same shape: x ({x.shape}), y ({y.shape})"
-                # print(torch.argmax(y, dim=1).shape)
                 pred_labels.append(torch.argmax(y, dim=1)) ### want to take the max along channels
         return torch.cat(pred_labels)
     

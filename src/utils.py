@@ -123,7 +123,7 @@ def moving_average(a, n=3):
     return ret[n - 1:] / n
 
 def plot_loss_iter(loss: list):
-    Y = np.array(moving_average(loss),20)
+    Y = np.array(moving_average(loss,20))
     X = np.array([i for i in range(Y.size)])
     plt.plot(X, Y)
     plt.xlabel("Iteration number")

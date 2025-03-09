@@ -3,6 +3,9 @@ import argparse
 import torch
 from torchinfo import summary
 
+## TEMPOROARY
+import matplotlib.pyplot as plt
+
 from pathlib import Path
 
 from models.trainer import Trainer
@@ -10,7 +13,7 @@ from models.unet import UNet
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
-from utils import seed_everything, plot_loss_iter, IoU
+from utils import seed_everything, plot_loss_iter, IoU, plot_loss_iou_temp, accuracy
 
 seed = 100
 
@@ -82,12 +85,9 @@ def main(args):
         preds_train = method_obj.fit(x_y_train)
     else:
         preds_train = method_obj.predict(x_y_train)
-    print(f"IoU: {IoU(method_obj.truth_labels.to_numpy(), preds_train.to_numpy())}")
-    # Predict on unseen data
-    # preds = method_obj.predict(xval)
 
-    ## 5. Evaluation metrics
-    plot_loss_iter(method_obj.loss)
+    ## 5. predict on unseen data
+    preds_val = method_obj.predict(x_y_val, display_metrics = True)
 
     ## 6. Saving and loading the model
     if args.save is not None:

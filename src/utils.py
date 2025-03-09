@@ -3,6 +3,7 @@ import numpy as np
 import os
 import random
 from PIL import Image
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -112,11 +113,20 @@ def IoU(y : np.array , y_pred : np.array):
     mean_iou = np.mean(iou_per_class)
     return mean_iou
 
-
+def accuracy(y : np.array , y_pred : np.array):
+    """
+    Calculates batch accuracy of two np.arrays
+    y, y_pred have shape (N, w, h)
+    """
+    N1, w1, h1 = y.shape
+    N2, w2, h2 = y_pred.shape
+    assert N1 == N2 and w1 == w2 and h1 == h2, f"dimensions of y and y_pred are different: ({y.shape}) vs. ({y_pred.shape})"
+    return np.sum(y == y_pred) / (w1 * h1 * N1)
 
 
 # Plotting
 #########
+
 def moving_average(a, n=3):
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
@@ -128,4 +138,38 @@ def plot_loss_iter(loss: list):
     plt.plot(X, Y)
     plt.xlabel("Iteration number")
     plt.ylabel("loss")
+    plt.show()
+
+
+
+
+def plot_loss_iou_temp(trainer):
+    x = [i for i in range(len(trainer.loss_mu))]
+    y = trainer.loss_mu
+    e = trainer.loss_sigma
+
+    plt.errorbar(x, y, e)
+    plt.xlabel("Iteration number")
+    plt.ylabel("average loss per epoch, with stdev")
+
+    plt.show()
+
+    x = [i for i in range(len(trainer.IoU_mu))]
+    y = trainer.IoU_mu
+    e = trainer.IoU_sigma
+
+    plt.errorbar(x, y, e)
+    plt.xlabel("Iteration number")
+    plt.ylabel("average IoU per epoch, with stdev")
+
+    plt.show()
+
+    x = [i for i in range(len(trainer.acc_mu))]
+    y = trainer.acc_mu
+    e = trainer.acc_sigma
+
+    plt.errorbar(x, y, e)
+    plt.xlabel("Iteration number")
+    plt.ylabel("average IoU per epoch, with stdev")
+
     plt.show()

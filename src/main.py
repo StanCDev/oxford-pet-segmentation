@@ -94,6 +94,8 @@ def main(args):
         torch.save(model.state_dict(), args.save)
     # np.save("predictions", preds)
 
+    plot_loss_iou_temp(method_obj)
+
 
 
 if __name__ == '__main__':

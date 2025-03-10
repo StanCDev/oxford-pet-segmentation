@@ -144,13 +144,16 @@ def plot_loss_iter(loss: list):
 
 
 def plot_loss_iou_temp(trainer):
-    x = [i for i in range(len(trainer.loss_mu))]
-    y = trainer.loss_mu
-    e = trainer.loss_sigma
+    x = np.array([i for i in range(len(trainer.loss_mu))])
+    y = np.array(trainer.loss_mu)
+    e = np.array(trainer.loss_sigma)
 
-    plt.errorbar(x, y, e)
+    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
+    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
     plt.xlabel("Iteration number")
     plt.ylabel("average loss per epoch, with stdev")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
 
     plt.show()
 
@@ -158,9 +161,12 @@ def plot_loss_iou_temp(trainer):
     y = trainer.IoU_mu
     e = trainer.IoU_sigma
 
-    plt.errorbar(x, y, e)
+    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
+    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
     plt.xlabel("Iteration number")
     plt.ylabel("average IoU per epoch, with stdev")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
 
     plt.show()
 
@@ -168,8 +174,11 @@ def plot_loss_iou_temp(trainer):
     y = trainer.acc_mu
     e = trainer.acc_sigma
 
-    plt.errorbar(x, y, e)
+    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
+    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
     plt.xlabel("Iteration number")
-    plt.ylabel("average IoU per epoch, with stdev")
+    plt.ylabel("average acc per epoch, with stdev")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
 
     plt.show()

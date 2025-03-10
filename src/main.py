@@ -10,6 +10,7 @@ from pathlib import Path
 
 from models.trainer import Trainer
 from models.unet import UNet
+from models.autoencoder import AutoEncoder
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
@@ -65,6 +66,8 @@ def main(args):
     model = None
     if args.nn_type == "unet":
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
+    elif args.nn_type == "autoencoder":
+        model = AutoEncoder()
     else:
         raise ValueError("Inputted model is not a valid model")
     

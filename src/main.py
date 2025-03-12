@@ -3,14 +3,18 @@ import argparse
 import torch
 from torchinfo import summary
 
+## TEMPOROARY
+import matplotlib.pyplot as plt
+
 from pathlib import Path
 
 from models.trainer import Trainer
 from models.unet import UNet
+from models.autoencoder import AutoEncoder
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
-from utils import seed_everything, plot_loss_iter
+from utils import seed_everything, plot_loss_iter, IoU, plot_loss_iou_temp, accuracy
 
 seed = 100
 
@@ -62,6 +66,8 @@ def main(args):
     model = None
     if args.nn_type == "unet":
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
+    elif args.nn_type == "autoencoder":
+        model = AutoEncoder()
     else:
         raise ValueError("Inputted model is not a valid model")
     
@@ -77,17 +83,21 @@ def main(args):
 
 
     ## 4. Train and evaluate the method
-    preds_train = method_obj.fit(x_y_train)
-    # Predict on unseen data
-    # preds = method_obj.predict(xval)
+    preds_train = None
+    if args.train:
+        preds_train = method_obj.fit(x_y_train)
+    else:
+        preds_train = method_obj.predict(x_y_train)
 
-    ## 5. Evaluation metrics
-    plot_loss_iter(method_obj.loss)
+    ## 5. predict on unseen data
+    preds_val = method_obj.predict(x_y_val, display_metrics = True)
 
     ## 6. Saving and loading the model
     if args.save is not None:
         torch.save(model.state_dict(), args.save)
     # np.save("predictions", preds)
+
+    plot_loss_iou_temp(method_obj)
 
 
 
@@ -103,6 +113,8 @@ if __name__ == '__main__':
     ### Pytorch saving / loading models
     parser.add_argument('--save', default=None, type=str, help="path where you want to save your model")
     parser.add_argument('--load', default=None, type=str, help="path where you want to load your model")
+
+    parser.add_argument('--train',action="store_true",default=False)
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")

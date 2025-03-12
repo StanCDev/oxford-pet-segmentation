@@ -5,7 +5,11 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from utils import IoU
+from utils import IoU, accuracy
+
+red_scale = 1/3 * 1/0.103
+green_scale = 1/3* 1/0.194
+background_scale = 1/3*1/0.704
 
 
 class Trainer(object):
@@ -15,7 +19,7 @@ class Trainer(object):
     It will also serve as an interface between numpy and pytorch.
     """
 
-    def __init__(self, model, lr, epochs, batch_size,device = torch.device("cpu")):
+    def __init__(self, model, lr, epochs, batch_size,device = torch.device("cpu"), weight : torch.Tensor = torch.tensor([red_scale, green_scale, background_scale], dtype=torch.float32)):
         """
         Initialize the trainer object for a given model.
 
@@ -30,13 +34,19 @@ class Trainer(object):
         self.model = model
         self.batch_size = batch_size
 
-        self.criterion : nn.CrossEntropyLoss = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(model.parameters(), lr) ###CHANGE THIS
-        ###torch.optim.RAdam()
+        weight = weight.to(device)
+        self.criterion : nn.CrossEntropyLoss = nn.CrossEntropyLoss(weight=weight)
+        ## self.optimizer = torch.optim.SGD(model.parameters(), lr) ###CHANGE THIS
+        ## learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8
+        self.optimizer = torch.optim.Adam(params=model.parameters(),lr=1e-4,betas=(0.9,0.999),eps=1e-8)
         self.device = device
 
-        self.loss = []
-        self.IoUs = []
+        self.loss_mu = []
+        self.loss_sigma = []
+        self.IoU_mu = []
+        self.IoU_sigma = []
+        self.acc_mu = []
+        self.acc_sigma = []
         # ...
 
     def train_all(self, dataloader):
@@ -65,6 +75,10 @@ class Trainer(object):
             dataloader (DataLoader): dataloader for training data
         """
         self.model.train()
+        # Statistics
+        temp_loss = []
+        temp_IoU = []
+        temp_acc = []
         for it, batch in enumerate(dataloader):
             # 5.1 Load a batch, break it down in images and targets.
             x, y = batch
@@ -73,7 +87,8 @@ class Trainer(object):
             # 5.2 Run forward pass.
             logits = self.model.forward(x)
             # 5.3 Compute loss (using 'criterion').
-            loss = self.criterion(logits,y)
+            ground_truths = torch.argmax(y, dim=1)
+            loss = self.criterion(logits,ground_truths)
             
             # 5.4 Run backward pass.
             loss.backward()
@@ -85,13 +100,31 @@ class Trainer(object):
             self.model.zero_grad()
 
             #5.7 Save loss and iteration number
-            self.loss.append(loss.data.cpu().numpy())
+            temp_loss.append(loss.data.cpu().numpy())
 
-            print('\rEp {}/{}, it {}/{}: loss train: {:.5f}, accuracy train: {:.2f}'.
+            #5.8
+            y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
+            y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
+
+            IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+            acc = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
+            temp_IoU.append(IoU_score)
+            temp_acc.append(acc)
+            print('\rEp {}/{}, it {}/{}: loss train: {:.3f}, IoU train: {:.3f}, accuracy train: {:.3f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
-                        0.33), end='') #IoU(logits, y)
+                        IoU_score, acc), end='')
+        ### mean and stdev
+        temp_IoU = np.array(temp_IoU)
+        temp_loss = np.array(temp_loss)
+        temp_acc = np.array(temp_acc)
+        self.loss_mu.append(temp_loss.mean())
+        self.loss_sigma.append(temp_loss.std())
+        self.IoU_mu.append(temp_IoU.mean())
+        self.IoU_sigma.append(temp_IoU.std())
+        self.acc_mu.append(temp_acc.mean())
+        self.acc_sigma.append(temp_acc.std())
 
-    def predict_torch(self, dataloader):
+    def predict_torch(self, dataloader, display_metrics : bool = False):
         """
         Predict the validation/test dataloader labels using the model.
 
@@ -110,14 +143,31 @@ class Trainer(object):
         """
         self.model.eval()
         pred_labels = []
+        acc = []
+        iou = []
         with torch.no_grad():
-            for it, x in enumerate(dataloader):
-                x = x[0] ### x is a tuple
+            for _, batch in enumerate(dataloader):
+                x, y = batch
                 x = x.to(self.device)
-                y = self.model(x) # N, ch, h, w
-                assert y.shape == x.shape, f"x and y should have same shape: x ({x.shape}), y ({y.shape})"
-                # print(torch.argmax(y, dim=1).shape)
-                pred_labels.append(torch.argmax(y, dim=1)) ### want to take the max along channels
+                y = y.to(self.device)
+
+                logits = self.model.forward(x)
+                ground_truths = torch.argmax(y, dim=1)
+
+                y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
+                y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
+
+                pred_labels.append(y_pred_classes) ### want to take the max along channels
+
+                if display_metrics:
+                    IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+                    acc_score = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
+                    acc.append(acc_score)
+                    iou.append(IoU_score)
+        
+        if display_metrics:
+            print(f"Validation accuracy = {np.array(acc).mean()}")
+            print(f"Validation IoU = {np.array(iou).mean()}")
         return torch.cat(pred_labels)
     
     def fit(self, training_data : Dataset):
@@ -135,7 +185,7 @@ class Trainer(object):
 
         return self.predict(training_data)
 
-    def predict(self, test_data : Dataset):
+    def predict(self, test_data : Dataset, display_metrics : bool = False):
         """
         Runs prediction on the test data.
 
@@ -149,7 +199,7 @@ class Trainer(object):
         # First, prepare data for pytorch
         test_dataloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=False)
 
-        pred_labels = self.predict_torch(test_dataloader)
+        pred_labels = self.predict_torch(test_dataloader, display_metrics=display_metrics)
 
         # We return the labels after transforming them into numpy array.
         return pred_labels.cpu().numpy()

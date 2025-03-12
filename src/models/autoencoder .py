@@ -44,3 +44,6 @@ class AutoEncoder(nn.Module):
         x = self.encoder(x)     
         x = self.decoder(x)
         return x
+
+''' Once the decoder has been trained to match the encoder, the encoder can be used to extract features from the input data. 
+This can the be used to train a segmentation model using the extracted features and masks as the target. '''

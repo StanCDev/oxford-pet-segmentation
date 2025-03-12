@@ -10,7 +10,7 @@ class DownBlock(nn.Module):
         super(DownBlock, self).__init__()
         self.down = nn.Sequential(
             nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(True),
+            nn.LeakyReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
 
@@ -21,44 +21,87 @@ class UpBlock(nn.Module):
     def __init__(self, in_ch : int, out_ch : int):
         super(UpBlock, self).__init__()
         self.up = nn.Sequential(
-            nn.ConvTranspose2d(in_ch, out_ch, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.ReLU(True),
+            nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1),
+            nn.LeakyReLU(),
         )
 
     def forward(self, x):
-        return x
+        return self.up(x)
+    
 
+class Encoder(nn.Module):
+    def __init__(self, w : int, h : int, in_channels : int, out_channels : int, ch_mult : int = 8, latent_space_dim: int = 32 * 32 * 3):
+        super(Encoder, self).__init__()
+        self.w = w
+        self.h = h
 
-class AutoEncoder(nn.Module):
-    """
-    Includes encoder and decoder methods for an autoencoder
-    """
-    def __init__(self, w : int, h : int, in_channels : int, out_channels : int):
-        super(AutoEncoder, self).__init__()
-
+        factor_in = in_channels * ch_mult
         self.encoder = nn.Sequential(
-            DownBlock(in_channels, 32),
-            DownBlock(32,64),
-            DownBlock(64,128),
-            DownBlock(128,256),
+            DownBlock(in_channels, factor_in),
+            DownBlock(factor_in ,2 * factor_in),
+            DownBlock(2 * factor_in, 4 * factor_in),
+            DownBlock(4 * factor_in, 8 * factor_in),
             nn.Flatten(),
-            nn.Linear(256*(w//(2 ** 4))*(h//(2**4)), 1024),
+            nn.Linear(8 * factor_in * (w//(2 ** 4)) *(h//(2**4)), 16 * factor_in),
+            nn.LeakyReLU(),
         )
+
+    def forward(self, x):
+        return self.encoder(x)
+
+class Decoder(nn.Module):
+    def __init__(self, w : int, h : int, in_channels : int, out_channels : int, ch_mult : int = 8, latent_space_dim: int = 32 * 32 * 3):
+        super(Decoder, self).__init__()
+        self.w = w
+        self.h = h
+
+        factor_in = in_channels * ch_mult
+        self.factor_in = factor_in
+
+        factor_out = out_channels * ch_mult
+
+        self.linear =  nn.Sequential(
+            nn.Linear(16 * factor_in, 8 * factor_in*(w//(2 ** 4))*(h//(2**4))),
+            nn.LeakyReLU(),
+            )
         self.decoder = nn.Sequential(
-            nn.Linear(1024, 256*16*16),
-            nn.ReLU(True),
-            UpBlock(256,128),
-            UpBlock(128,64),
-            UpBlock(64,32),
-            UpBlock(32,1),
+            UpBlock(8 * factor_in , 4 * factor_in),
+            UpBlock(4 * factor_in , 2 * factor_in),
+            UpBlock(2 * factor_in , factor_in),
+            UpBlock(factor_in, factor_out),
             nn.Conv2d(
-                in_channels= 1,
+                in_channels= factor_out,
                 out_channels= out_channels,
                 kernel_size=1
             )
         )
 
     def forward(self, x):
-        x = self.encoder(x)     
-        x = self.decoder(x)
-        return x
+
+        B = x.shape[0]
+        C = 8 * self.factor_in
+
+        x = self.linear(x)
+        x = torch.reshape(x,(B, C, self.h//(2 ** 4), self.w//(2 ** 4)))
+        return self.decoder(x)
+
+
+class AutoEncoder(nn.Module):
+    """
+    Includes encoder and decoder methods for an autoencoder.
+    """
+    def __init__(self, w : int, h : int, in_channels : int, out_channels : int, ch_mult : int = 8, latent_space_dim : int = 32 * 32 * 3):
+        super(AutoEncoder, self).__init__()
+
+        factor_in = in_channels * ch_mult
+        factor_out = out_channels * ch_mult
+
+        self.encoder = Encoder(w = w, h = h, in_channels=in_channels, out_channels=out_channels, ch_mult=ch_mult, latent_space_dim=latent_space_dim)
+        self.decoder = Decoder(w = w, h = h, in_channels=in_channels, out_channels=out_channels, ch_mult=ch_mult, latent_space_dim=latent_space_dim)
+
+    def forward(self, x):
+        # print(f"x shape before encoding = {x.shape}")
+        z = self.encoder(x)
+        # print(f"x shape after encoding = {z.shape}")
+        y = self.decoder(z)
+        return y

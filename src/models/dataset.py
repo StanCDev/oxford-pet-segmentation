@@ -13,7 +13,7 @@ class SegmentationDataset(Dataset):
     """
     Create a train/test segmentation dataset
     """
-    def __init__(self, image_path : Path, image_label_path : Path, json_mapping_path : Path, train : bool = True, transform=ToTensor()):
+    def __init__(self, image_path : Path, image_label_path : Path, json_mapping_path : Path, nn_type : str, train : bool = True, transform=ToTensor()):
         """
         """
         self.image_path = image_path
@@ -22,6 +22,7 @@ class SegmentationDataset(Dataset):
         self.train = train
         self.transform = transform
         self.accepted_exts = {".jpg", ".jpeg", ".png"}
+        self.nn_type = nn_type
 
         with open(json_mapping_path, "r") as json_file:
             self.index_mapping = json.loads(json_file.read())
@@ -40,6 +41,13 @@ class SegmentationDataset(Dataset):
             raise ValueError(f"Index not found in json file at {self.json_mapping_path}")
         # Load image and mask
         with Image.open(self.image_path / f"{img_name}{extension_train}") as image:
+
+            if self.nn_type == "autoencoder":
+                image = image.convert("RGB")
+                if self.transform:
+                        image = self.transform(image).float()
+                return image, image
+            
             if self.train:
                 with Image.open(self.image_label_path / f"{img_name}{extension_label}") as label:
                     # Apply transformations

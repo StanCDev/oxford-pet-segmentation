@@ -14,8 +14,8 @@ class ConvBlock(nn.Module):
 
         self.block = nn.Sequential(
             nn.Conv2d(
-                in_channels= in_ch,
-                out_channels= out_ch,
+                in_channels=in_ch,
+                out_channels=out_ch,
                 kernel_size=(3,3),
                 padding=1,
                 padding_mode=self.padding_mode

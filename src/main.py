@@ -34,7 +34,8 @@ def main(args):
     x_y_train = SegmentationDataset(
         Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/train"), 
         Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/label"),
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json")
+        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json"),
+        nn_type=args.nn_type,
         )
     x_y_val = None
     x_y_test = None
@@ -67,7 +68,7 @@ def main(args):
     if args.nn_type == "unet":
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
     elif args.nn_type == "autoencoder":
-        model = AutoEncoder()
+        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
     else:
         raise ValueError("Inputted model is not a valid model")
     
@@ -79,7 +80,7 @@ def main(args):
     model.to(device)
 
     # Trainer object
-    method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size,device=device)
+    method_obj = Trainer(model=model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size,device=device,nn_type=args.nn_type)
 
 
     ## 4. Train and evaluate the method

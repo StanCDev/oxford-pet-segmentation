@@ -118,10 +118,19 @@ def accuracy(y : np.array , y_pred : np.array):
     Calculates batch accuracy of two np.arrays
     y, y_pred have shape (N, w, h)
     """
-    N1, w1, h1 = y.shape
-    N2, w2, h2 = y_pred.shape
-    assert N1 == N2 and w1 == w2 and h1 == h2, f"dimensions of y and y_pred are different: ({y.shape}) vs. ({y_pred.shape})"
-    return np.sum(y == y_pred) / (w1 * h1 * N1)
+    assert len(y.shape) == len(y_pred.shape), f"arrays must have same shape, y has shape {y.shape}, and y_pred has shape {y_pred.shape}"
+    if len(y.shape) == 3:
+        N1, w1, h1 = y.shape
+        N2, w2, h2 = y_pred.shape
+        assert N1 == N2 and w1 == w2 and h1 == h2, f"dimensions of y and y_pred are different: ({y.shape}) vs. ({y_pred.shape})"
+        return np.sum(y == y_pred) / (w1 * h1 * N1)
+    elif len(y.shape) == 4:
+        N1, w1, ch1, h1 = y.shape
+        N2, w2, ch2, h2 = y_pred.shape
+        assert N1 == N2 and w1 == w2 and h1 == h2 and ch1 == ch2, f"dimensions of y and y_pred are different: ({y.shape}) vs. ({y_pred.shape})"
+        return np.sum(y == y_pred) / (w1 * h1 * N1 * ch1)
+    else:
+        raise ValueError("Not 3 or 4 dimensional arrays")
 
 
 # Plotting
@@ -158,8 +167,8 @@ def plot_loss_iou_temp(trainer):
     plt.show()
 
     x = [i for i in range(len(trainer.IoU_mu))]
-    y = trainer.IoU_mu
-    e = trainer.IoU_sigma
+    y = np.array(trainer.IoU_mu)
+    e = np.array(trainer.IoU_sigma)
 
     plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
     plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
@@ -171,8 +180,8 @@ def plot_loss_iou_temp(trainer):
     plt.show()
 
     x = [i for i in range(len(trainer.acc_mu))]
-    y = trainer.acc_mu
-    e = trainer.acc_sigma
+    y = np.array(trainer.acc_mu)
+    e = np.array(trainer.acc_sigma)
 
     plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
     plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")

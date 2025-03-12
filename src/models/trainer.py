@@ -19,7 +19,15 @@ class Trainer(object):
     It will also serve as an interface between numpy and pytorch.
     """
 
-    def __init__(self, model, lr, epochs, batch_size,device = torch.device("cpu"), weight : torch.Tensor = torch.tensor([red_scale, green_scale, background_scale], dtype=torch.float32)):
+    def __init__(
+            self, 
+            model, 
+            lr, 
+            epochs, 
+            nn_type : str ,
+            batch_size,device = torch.device("cpu"), 
+            weight : torch.Tensor = torch.tensor([red_scale, green_scale, background_scale], dtype=torch.float32),
+            ):
         """
         Initialize the trainer object for a given model.
 
@@ -33,12 +41,17 @@ class Trainer(object):
         self.epochs = epochs
         self.model = model
         self.batch_size = batch_size
+        self.nn_type = nn_type
 
         weight = weight.to(device)
-        self.criterion : nn.CrossEntropyLoss = nn.CrossEntropyLoss(weight=weight)
-        ## self.optimizer = torch.optim.SGD(model.parameters(), lr) ###CHANGE THIS
-        ## learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8
-        self.optimizer = torch.optim.Adam(params=model.parameters(),lr=1e-4,betas=(0.9,0.999),eps=1e-8)
+
+        self.criterion = None
+        if nn_type == "autoencoder":
+            self.criterion = nn.MSELoss()
+        else:
+            self.criterion : nn.CrossEntropyLoss = nn.CrossEntropyLoss(weight=weight)
+        
+        self.optimizer = torch.optim.Adam(params=model.parameters(),lr=lr,betas=(0.9,0.999),eps=1e-8)
         self.device = device
 
         self.loss_mu = []
@@ -84,11 +97,21 @@ class Trainer(object):
             x, y = batch
             x = x.to(self.device)
             y = y.to(self.device)
-            # 5.2 Run forward pass.
-            logits = self.model.forward(x)
-            # 5.3 Compute loss (using 'criterion').
-            ground_truths = torch.argmax(y, dim=1)
-            loss = self.criterion(logits,ground_truths)
+
+            loss = None
+            x_pred = None
+            ground_truths = None
+            logits = None
+
+            if self.nn_type == "autoencoder":
+                x_pred = self.model.forward(x)
+                loss = self.criterion(x_pred, y)
+            else:
+                # 5.2 Run forward pass.
+                logits = self.model.forward(x)
+                # 5.3 Compute loss (using 'criterion').
+                ground_truths = torch.argmax(y, dim=1)
+                loss = self.criterion(logits,ground_truths)
             
             # 5.4 Run backward pass.
             loss.backward()
@@ -103,11 +126,22 @@ class Trainer(object):
             temp_loss.append(loss.data.cpu().numpy())
 
             #5.8
-            y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
-            y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
+            acc = 0
+            IoU_score = 0
 
-            IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
-            acc = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
+            if self.nn_type == "autoencoder":
+                y_eval = y.cpu().detach().numpy()
+                y_pred_eval = x_pred.cpu().detach().numpy()
+
+                IoU_score = IoU(y=y_eval, y_pred=y_pred_eval)
+                acc = accuracy(y=y_eval,y_pred=y_pred_eval)
+            else:
+                y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
+                y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
+
+                IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+                acc = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
+            
             temp_IoU.append(IoU_score)
             temp_acc.append(acc)
             print('\rEp {}/{}, it {}/{}: loss train: {:.3f}, IoU train: {:.3f}, accuracy train: {:.3f}'.

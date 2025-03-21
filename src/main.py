@@ -69,6 +69,17 @@ def main(args):
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
     elif args.nn_type == "autoencoder":
         model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+    elif args.nn_type == "autoencoder_segmentation":
+        if args.load is None:
+            raise ValueError("If nn_type is autoencoder_segmentation then --load must be specified as a loaded autoencoder needs to exist")
+        pre_trained = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+        pre_trained.load_state_dict(torch.load(args.load, weights_only=True))
+        
+        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+        model.encoder = pre_trained.encoder
+
+        for param in model.encoder.parameters():
+            param.requires_grad = False  # No gradients for encoder
     else:
         raise ValueError("Inputted model is not a valid model")
     
@@ -106,7 +117,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--nn_type', default="unet",
-                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | 'CLIP' | 'prompt'")
+                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' | 'prompt'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
     parser.add_argument('--device', type=str, default="cpu",
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")

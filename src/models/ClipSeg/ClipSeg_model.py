@@ -25,7 +25,6 @@ import torch.optim.lr_scheduler as lr_scheduler
 model_id = "openai/clip-vit-base-patch32"
 
 class Encoder(nn.Module):
-    
     def __init__(self, model_id = model_id):
         super(Encoder, self).__init__()
 

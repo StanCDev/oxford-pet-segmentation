@@ -31,9 +31,15 @@ def main(args):
     seed_everything(seed=seed)
 
     ## 1. Load data
+    base_path : Path = None
+    if args.nn_type == "CLIP":
+        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
+    else:
+        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/")
+
     x_y_train = SegmentationDataset(
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/train"), 
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/label"),
+        Path(base_path / "train"), 
+        Path(base_path / "label"),
         Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json"),
         nn_type=args.nn_type,
         )

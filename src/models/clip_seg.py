@@ -7,9 +7,9 @@ import math
 # Using CLIP Model 'clip-vit-base-patch32' from Hugging face
 model_id = "openai/clip-vit-base-patch32"
 
-class Encoder(nn.Module):
+class CLIP_Encoder(nn.Module):
     def __init__(self, model_id = model_id):
-        super(Encoder, self).__init__()
+        super(CLIP_Encoder, self).__init__()
         # Load the CLIP model (probably do not need this for segmentation???)
         self.model = CLIPModel.from_pretrained(model_id)
         # Freeze the parameters of the model as we are not training the encoder
@@ -61,7 +61,7 @@ class Encoder(nn.Module):
         
         return text_encoding, image_encoding, mid_layers
 
-class Decoder(nn.Module):
+class CLIP_Decoder(nn.Module):
     # Decoder for the transformer model. REduces the dimensionality of the features and applies FiLM layers
     # to the activations of the encoder. The activations are then passed through a series of MHA blocks and
     # upsampled to the original image size.
@@ -74,7 +74,7 @@ class Decoder(nn.Module):
     
     def __init__(self, reduce_dim=128, cond_layer = None,
                  extract_layers=[8, 9, 10, 11], mha_heads=4):
-        super(Decoder, self).__init__()
+        super(CLIP_Decoder, self).__init__()
         
         self.cond_layer = cond_layer
         # FiLM layers used to apply feature-wise transformations to the activations from the encoder (mul is for scaling and add is used for shifting)
@@ -122,3 +122,18 @@ class Decoder(nn.Module):
         a = self.trans_conv(a)
             
         return a
+    
+
+class CLIP(nn.Module):
+    """
+    Includes encoder and decoder methods for an autoencoder.
+    """
+    def __init__(self, model_id : str = model_id):
+        super(CLIP, self).__init__()
+        self.encoder = CLIP_Encoder(model_id)
+        self.decoder = CLIP_Decoder()
+
+    def forward(self, x):
+        z = self.encoder(x)
+        y = self.decoder(z)
+        return y

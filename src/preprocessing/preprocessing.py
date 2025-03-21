@@ -11,6 +11,9 @@ from make_json import make_json_file
 
 from torchvision.transforms import InterpolationMode
 
+train_dim = (256,256)
+label_dim = (256,256)
+
 
 def main(args) -> None:
     ###1. Find set differences of images
@@ -28,8 +31,8 @@ def main(args) -> None:
 
     ###2. Resize all images
     if args.resize:
-        resize_directory(train, (256,256), True)
-        resize_directory(label, (256,256), True,interpolation_mode=InterpolationMode.NEAREST)
+        resize_directory(train, train_dim, True)
+        resize_directory(label, label_dim, True,interpolation_mode=InterpolationMode.NEAREST)
 
     ###3. Augment all resized images
     if args.augment:

@@ -44,13 +44,6 @@ def augment_image(
     transform = v2.Compose([v2.RandomRotation(degrees=rand_rot,interpolation=InterpolationMode.NEAREST),
             v2.RandomHorizontalFlip(p=rand_hflip), random_apply_transform])
 
-    '''
-    transform_1 = v2.Compose(
-        [
-            v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit)
-        ]
-        ) 
-    '''
     #Random apply color jitter to image only with 50% probability
     random_apply_transform_1 = v2.RandomApply([
             v2.ColorJitter(brightness=col_jit, contrast=col_jit, saturation=col_jit, hue=col_jit)
@@ -58,7 +51,6 @@ def augment_image(
     transform_1 = v2.Compose(
         [random_apply_transform_1]
         )
-
     img = transform_1(img) # separated out color jitter from other transforms   
     return transform(img, img_lab) 
 
@@ -105,9 +97,7 @@ def aug_directory(
     dir_files = src_dir.iterdir()
     dir_files_lab = src_dir_lab.iterdir()  
     nbr_images = len(list(filter(lambda image_path: (image_path.suffix.lower() in accepted_file_types) , dir_files)))
-    nbr_labels = len(list(filter(lambda image_path: (image_path.suffix.lower() in accepted_file_types) , dir_files_lab))) 
 
-    label_info=list()
     for image_path in src_dir.iterdir():
         if image_path.suffix.lower() in accepted_file_types:
             with Image.open(image_path) as img:
@@ -116,6 +106,7 @@ def aug_directory(
                     img = img.convert("RGB")  
                     img_lab = img_lab.convert("RGB") 
                     count += 1
+                    assert img.size == img_lab.size, f"Image and label must be of the same size. They are not! Images in question: {image_path} , {label_path}"
                     out_image, out_lab = augment_image(img=img, img_lab = img_lab, col_jit=col_jit, rand_rot=rand_rot, rand_hflip=rand_hflip, el_trans_a=el_trans_a, el_trans_s=el_trans_s, el_trans_prob=el_trans_prob, col_jit_prob=col_jit_prob)
                     if in_place:
                         train_ext = image_path.suffix.lower()

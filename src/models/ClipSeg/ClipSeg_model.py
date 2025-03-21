@@ -224,6 +224,7 @@ class Dog_Cat_Dataset(Dataset):
     
     def __getitem__(self, i):
     #   return self.phrases[i] for item i,  self.input_images[i], self.outputs[i], self.tasks[i]   
+    #   return (prompt, image, mask, task/id)
 
 # Loading the train dataset by creating an instance of the Dog_Cat_Dataset class
 

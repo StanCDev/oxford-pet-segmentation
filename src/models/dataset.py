@@ -11,8 +11,8 @@ from utils import label_to_one_hot
 
 import re
 
-DOGS = set("american_bulldog", "american_pit_bull_terrier", "basset_hound", "beagle", "boxer", "chihuahua", "english_cocker_spaniel", "english_setter", "german_shorthaired", "great_pyrenees","havanese", "japanese_chin", "keeshond", "leonberger", "miniature_pinscher", "newfoundland", "pomeranian", "pug", "saint_bernard","samyeod", "scottish_terrier", "shiba_inu", "staffordshire_bull_terrier", "wheaten_terrier", "yorkshire_terrier")
-CATS = set("abyssinian", "bengal", "birman", "bombay", "british_shorthair", "egyptian_mau", "main_coon", "persian", "ragdoll", "russian_blue", "siamese", "sphynx")
+DOGS = set(["american_bulldog", "american_pit_bull_terrier", "basset_hound", "beagle", "boxer", "chihuahua", "english_cocker_spaniel", "english_setter", "german_shorthaired", "great_pyrenees","havanese", "japanese_chin", "keeshond", "leonberger", "miniature_pinscher", "newfoundland", "pomeranian", "pug", "saint_bernard", "samoyed", "scottish_terrier", "shiba_inu", "staffordshire_bull_terrier", "wheaten_terrier", "yorkshire_terrier"])
+CATS = set(["abyssinian", "bengal", "birman", "bombay", "british_shorthair", "egyptian_mau", "maine_coon", "persian", "ragdoll", "russian_blue", "siamese", "sphynx"])
 
 DOG_PROMPT = "an image of a dog"
 CAT_PROMPT = "an image of a cat"
@@ -77,8 +77,9 @@ class SegmentationDataset(Dataset):
                         match result:
                             case None:
                                 raise ValueError(f"Image name doesn't match the regular expression '([a-z]+_)+'. image name = {img_name}")
-                            case re:
+                            case _:
                                 animal_name = result.group()
+                                animal_name = animal_name[:-1]
                         
                         #2. check if animal is in cat or dog
                         if animal_name in CATS:

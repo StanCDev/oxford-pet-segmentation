@@ -11,6 +11,7 @@ from pathlib import Path
 from models.trainer import Trainer
 from models.unet import UNet
 from models.autoencoder import AutoEncoder
+from models.clip_seg import Clip
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
@@ -86,6 +87,10 @@ def main(args):
 
         for param in model.encoder.parameters():
             param.requires_grad = False  # No gradients for encoder
+    elif args.nn_type == "CLIP":
+        if args.nn_batch_size != 1:
+            raise ValueError("Batch size for CLIP must be 1")
+        model = Clip()
     else:
         raise ValueError("Inputted model is not a valid model")
     
@@ -123,7 +128,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--nn_type', default="unet",
-                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' | 'prompt'")
+                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' | 'prompt'. Note that CLIP only works with a batch size of 1")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
     parser.add_argument('--device', type=str, default="cpu",
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")

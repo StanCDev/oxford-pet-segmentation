@@ -73,7 +73,7 @@ class CLIP_Decoder(nn.Module):
     # Returns: The reconstructed image.
     
     def __init__(self, reduce_dim=128, cond_layer = None,
-                 extract_layers=[8, 9, 10, 11], mha_heads=4):
+                 extract_layers=[2,4,6, 8, 10, 11], mha_heads=4):
         super(CLIP_Decoder, self).__init__()
         
         self.cond_layer = cond_layer
@@ -92,7 +92,7 @@ class CLIP_Decoder(nn.Module):
             nn.ReLU(),
             nn.ConvTranspose2d(reduce_dim, reduce_dim // 2, kernel_size=4, stride=4),
             nn.ReLU(),
-            nn.ConvTranspose2d(reduce_dim // 2, 1, kernel_size=8, stride=8)
+            nn.ConvTranspose2d(reduce_dim // 2, 3, kernel_size=8, stride=8),
         )
         
     def forward(self, encoder_out):
@@ -120,20 +120,19 @@ class CLIP_Decoder(nn.Module):
         size = int(math.sqrt(a.shape[2]))
         a = a.view(batch_size, a.shape[1], size, size)
         a = self.trans_conv(a)
-            
         return a
     
 
-class CLIP(nn.Module):
+class Clip(nn.Module):
     """
     Includes encoder and decoder methods for an autoencoder.
     """
     def __init__(self, model_id : str = model_id):
-        super(CLIP, self).__init__()
+        super(Clip, self).__init__()
         self.encoder = CLIP_Encoder(model_id)
         self.decoder = CLIP_Decoder()
 
-    def forward(self, x):
-        z = self.encoder(x)
-        y = self.decoder(z)
-        return y
+    def forward(self, image, prompt, layers = [8, 9, 10, 11]):
+        encoder_out = self.encoder(image,prompt,layers)
+        decoder_out = self.decoder(encoder_out)
+        return decoder_out

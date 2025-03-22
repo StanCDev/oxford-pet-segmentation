@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+
+import numpy as np
 
 from utils import IoU, accuracy
 
@@ -94,9 +96,17 @@ class Trainer(object):
         temp_acc = []
         for it, batch in enumerate(dataloader):
             # 5.1 Load a batch, break it down in images and targets.
-            x, y = batch
-            x = x.to(self.device)
-            y = y.to(self.device)
+            if self.nn_type == "CLIP":
+                (prompt, x, y, _) = batch
+                assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
+                # print(f"Here are the types of prompt, image, label : {type(prompt)}, {type(image)}, {type(label)}")
+                prompt = prompt[0]
+                # image = image[0]
+                # label = label[0]
+            else:
+                x, y = batch
+                x = x.to(self.device)
+                y = y.to(self.device)
 
             loss = None
             x_pred = None
@@ -106,11 +116,18 @@ class Trainer(object):
             if self.nn_type == "autoencoder":
                 x_pred = self.model.forward(x)
                 loss = self.criterion(x_pred, y)
+            elif self.nn_type == "CLIP":
+                torch_to_PIL = transforms.ToPILImage()
+                # 5.2 Run forward pass.
+                logits = self.model.forward(torch_to_PIL(x[0]).convert("RGB"), prompt)
+                ground_truths = torch.argmax(y, dim=1)
+                # 5.3 Compute loss (using 'criterion').
+                loss = self.criterion(logits,ground_truths)
             else:
                 # 5.2 Run forward pass.
                 logits = self.model.forward(x)
-                # 5.3 Compute loss (using 'criterion').
                 ground_truths = torch.argmax(y, dim=1)
+                # 5.3 Compute loss (using 'criterion').
                 loss = self.criterion(logits,ground_truths)
             
             # 5.4 Run backward pass.
@@ -181,12 +198,24 @@ class Trainer(object):
         iou = []
         with torch.no_grad():
             for _, batch in enumerate(dataloader):
-                x, y = batch
-                x = x.to(self.device)
-                y = y.to(self.device)
+                if self.nn_type == "CLIP":
+                    (prompt, x, y, _) = batch
+                    assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
+                    prompt = prompt[0]
+                else:
+                    x, y = batch
+                    x = x.to(self.device)
+                    y = y.to(self.device)
 
-                logits = self.model.forward(x)
-                ground_truths = torch.argmax(y, dim=1)
+                if self.nn_type == "CLIP":
+                    torch_to_PIL = transforms.ToPILImage()
+                    # 5.2 Run forward pass.
+                    logits = self.model.forward(torch_to_PIL(x[0]).convert("RGB"), prompt)
+                    ground_truths = torch.argmax(y, dim=1)
+                else:
+                    # 5.2 Run forward pass.
+                    logits = self.model.forward(x)
+                    ground_truths = torch.argmax(y, dim=1)
 
                 y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
                 y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)

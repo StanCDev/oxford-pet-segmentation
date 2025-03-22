@@ -11,8 +11,8 @@ from make_json import make_json_file
 
 from torchvision.transforms import InterpolationMode
 
-train_dim = (256,256)
-label_dim = (256,256)
+train_dim = (352,352)
+label_dim = (224,224)
 
 
 def main(args) -> None:

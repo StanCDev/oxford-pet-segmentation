@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 import numpy as np
 
-from utils import IoU, accuracy
+from utils import IoU, accuracy, dice
 
 red_scale = 1/3 * 1/0.103
 green_scale = 1/3* 1/0.194
@@ -62,9 +62,17 @@ class Trainer(object):
         self.IoU_sigma = []
         self.acc_mu = []
         self.acc_sigma = []
-        # ...
+        self.dice_mu = []
+        self.dice_sigma = []
 
-    def train_all(self, dataloader):
+        self.val_IoU_mu = []
+        self.val_IoU_sigma = []
+        self.val_acc_mu = []
+        self.val_acc_sigma = []
+        self.val_dice_mu = []
+        self.val_dice_sigma = []
+
+    def train_all(self, dataloader, val_dataloader = None):
         """
         Fully train the model over the epochs. 
         
@@ -76,10 +84,10 @@ class Trainer(object):
         """
         epochs = range(self.epochs)
         for ep in epochs:
-            self.train_one_epoch(dataloader,ep, len(epochs))
+            self.train_one_epoch(dataloader,ep, len(epochs), val_dataloader)
             print("")
 
-    def train_one_epoch(self, dataloader, ep, epochs):
+    def train_one_epoch(self, dataloader, ep, epochs, val_dataloader = None):
         """
         Train the model for ONE epoch.
 
@@ -94,6 +102,7 @@ class Trainer(object):
         temp_loss = []
         temp_IoU = []
         temp_acc = []
+        temp_dice = []
         for it, batch in enumerate(dataloader):
             # 5.1 Load a batch, break it down in images and targets.
             if self.nn_type == "CLIP":
@@ -101,8 +110,6 @@ class Trainer(object):
                 assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
                 # print(f"Here are the types of prompt, image, label : {type(prompt)}, {type(image)}, {type(label)}")
                 prompt = prompt[0]
-                # image = image[0]
-                # label = label[0]
             else:
                 x, y = batch
                 x = x.to(self.device)
@@ -157,10 +164,12 @@ class Trainer(object):
                 y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
 
                 IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+                dice_score = dice(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
                 acc = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
             
             temp_IoU.append(IoU_score)
             temp_acc.append(acc)
+            temp_dice.append(dice_score)
             print('\rEp {}/{}, it {}/{}: loss train: {:.3f}, IoU train: {:.3f}, accuracy train: {:.3f}'.
                 format(ep + 1, epochs, it + 1, len(dataloader), loss,
                         IoU_score, acc), end='')
@@ -168,12 +177,18 @@ class Trainer(object):
         temp_IoU = np.array(temp_IoU)
         temp_loss = np.array(temp_loss)
         temp_acc = np.array(temp_acc)
+        temp_dice = np.array(temp_dice)
         self.loss_mu.append(temp_loss.mean())
         self.loss_sigma.append(temp_loss.std())
         self.IoU_mu.append(temp_IoU.mean())
         self.IoU_sigma.append(temp_IoU.std())
         self.acc_mu.append(temp_acc.mean())
         self.acc_sigma.append(temp_acc.std())
+        self.dice_mu.append(temp_dice.mean())
+        self.dice_sigma.append(temp_dice.std())
+
+        if val_dataloader:
+            self.predict_torch(dataloader=val_dataloader, display_metrics=True)
 
     def predict_torch(self, dataloader, display_metrics : bool = False):
         """
@@ -196,6 +211,7 @@ class Trainer(object):
         pred_labels = []
         acc = []
         iou = []
+        dices = []
         with torch.no_grad():
             for _, batch in enumerate(dataloader):
                 if self.nn_type == "CLIP":
@@ -225,15 +241,29 @@ class Trainer(object):
                 if display_metrics:
                     IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
                     acc_score = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
+                    dice_score = dice(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+
                     acc.append(acc_score)
                     iou.append(IoU_score)
+                    dices.append(dice_score)
         
         if display_metrics:
+            iou = np.array(iou)
+            acc = np.array(acc)
+            dices = np.array(dices)
+
+            self.val_IoU_mu.append(iou.mean())
+            self.val_IoU_sigma.append(iou.std())
+            self.val_acc_mu.append(acc.mean())
+            self.val_acc_sigma.append(acc.std())
+            self.val_dice_mu.append(dices.mean())
+            self.val_dice_sigma.append(dices.std())
+
             print(f"Validation accuracy = {np.array(acc).mean()}")
             print(f"Validation IoU = {np.array(iou).mean()}")
         return torch.cat(pred_labels)
     
-    def fit(self, training_data : Dataset):
+    def fit(self, training_data : Dataset, validation_data : Dataset = None):
         """
         Trains the model, returns predicted labels for training data.
 
@@ -243,8 +273,11 @@ class Trainer(object):
             pred_labels (array): target of shape (N,)
         """
         train_dataloader = DataLoader(training_data, batch_size=self.batch_size, shuffle=True)
-        
-        self.train_all(train_dataloader)
+        if validation_data:
+            validation_dataloader = DataLoader(validation_data, batch_size=self.batch_size)
+            self.train_all(train_dataloader,validation_dataloader)
+        else:
+            self.train_all(train_dataloader)
 
         return self.predict(training_data)
 

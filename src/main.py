@@ -3,9 +3,6 @@ import argparse
 import torch
 from torchinfo import summary
 
-## TEMPOROARY
-import matplotlib.pyplot as plt
-
 from pathlib import Path
 
 from models.trainer import Trainer
@@ -15,7 +12,7 @@ from models.clip_seg import Clip
 from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
-from utils import seed_everything, plot_loss_iter, IoU, plot_loss_iou_temp, accuracy
+from utils import seed_everything, plot_training_metrics
 
 seed = 100
 
@@ -44,7 +41,6 @@ def main(args):
         Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json"),
         nn_type=args.nn_type,
         )
-    x_y_val = None
     x_y_test = None
 
     ## 2. Make a validation set
@@ -57,6 +53,7 @@ def main(args):
 
 
     ## 3. Selecting device (CPU/GPU)
+    ## add restriction wrt to clip?????
     device = torch.device("cpu")
     if args.device == "cuda":
         if torch.cuda.is_available():
@@ -108,19 +105,23 @@ def main(args):
     ## 4. Train and evaluate the method
     preds_train = None
     if args.train:
-        preds_train = method_obj.fit(x_y_train)
+        if args.evaluate_val:
+            preds_train = method_obj.fit(x_y_train, x_y_val)
+        else:
+            preds_train = method_obj.fit(x_y_train)
     else:
         preds_train = method_obj.predict(x_y_train)
 
     ## 5. predict on unseen data
-    preds_val = method_obj.predict(x_y_val, display_metrics = True)
+    if not args.evaluate_val:
+        preds_val = method_obj.predict(x_y_val, display_metrics = True)
 
     ## 6. Saving and loading the model
     if args.save is not None:
         torch.save(model.state_dict(), args.save)
     # np.save("predictions", preds)
 
-    plot_loss_iou_temp(method_obj)
+    plot_training_metrics(method_obj, show_val=args.evaluate_val)
 
 
 
@@ -138,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--load', default=None, type=str, help="path where you want to load your model")
 
     parser.add_argument('--train',action="store_true",default=False)
+    parser.add_argument('--evaluate_val', action="store_true", help = "At every epoch, compute and store metrics on validation set")
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")

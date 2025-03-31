@@ -3,7 +3,6 @@ import numpy as np
 import os
 import random
 from PIL import Image
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -113,6 +112,27 @@ def IoU(y : np.array , y_pred : np.array):
     mean_iou = np.mean(iou_per_class)
     return mean_iou
 
+
+def dice(y : np.array , y_pred : np.array):
+    """
+    y, y_pred have shape (N, ch, w, h)
+    """
+    N1, ch1, w1, h1 = y.shape
+    N2, ch2, w2, h2 = y_pred.shape
+    assert N1 == N2 and ch1 == ch2 and w1 == w2 and h1 == h2, f"dimensions of y and y_pred are different: ({y.shape}) vs. ({y_pred.shape})"
+    assert ch1 == 3, "must have 3 channels"
+    
+    dice_per_class = []
+    
+    for c in range(3):
+        intersection = np.logical_and(y[:, c, :, :], y_pred[:, c, :, :]).sum()
+        dice = intersection / (N1 * w1 * h1)
+        dice_per_class.append(dice)
+    
+    dice_per_class = np.array(dice_per_class)
+    mean_dice = np.mean(dice_per_class)
+    return mean_dice
+
 def accuracy(y : np.array , y_pred : np.array):
     """
     Calculates batch accuracy of two np.arrays
@@ -136,58 +156,40 @@ def accuracy(y : np.array , y_pred : np.array):
 # Plotting
 #########
 
-def moving_average(a, n=3):
-    ret = np.cumsum(a, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
+def plot_metric(x : np.array, y: np.array, e: np.array, y_val: np.array, e_val: np.array, xlabel : str, ylabel: str, show_val : bool = False):
+    plt.plot(x, y, marker='o', linestyle='-', color='b', label="training mean")
+    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="training standard deviation")
 
-def plot_loss_iter(loss: list):
-    Y = np.array(moving_average(loss,20))
-    X = np.array([i for i in range(Y.size)])
-    plt.plot(X, Y)
-    plt.xlabel("Iteration number")
-    plt.ylabel("loss")
+    if show_val:
+        plt.plot(x, y_val, marker='s', linestyle='-', color='r', label="Validation mean") 
+        plt.fill_between(x, y_val - e_val, y_val + e_val, color='r', alpha=0.2, label="Validation standard deviation")
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+
     plt.show()
 
-
-
-
-def plot_loss_iou_temp(trainer):
+def plot_training_metrics(trainer, show_val : bool = False):
     x = np.array([i for i in range(len(trainer.loss_mu))])
     y = np.array(trainer.loss_mu)
     e = np.array(trainer.loss_sigma)
 
-    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
-    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
-    plt.xlabel("Iteration number")
-    plt.ylabel("average loss per epoch, with stdev")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.6)
-
-    plt.show()
+    plot_metric(x,y,e, None, None, "Iteration number", "average loss per epoch, with stdev",show_val=False)
 
     x = [i for i in range(len(trainer.IoU_mu))]
     y = np.array(trainer.IoU_mu)
+    y_val = np.array(trainer.val_IoU_mu)
     e = np.array(trainer.IoU_sigma)
+    e_val = np.array(trainer.val_IoU_sigma)
 
-    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
-    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
-    plt.xlabel("Iteration number")
-    plt.ylabel("average IoU per epoch, with stdev")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.6)
-
-    plt.show()
+    plot_metric(x,y,e,y_val,e_val,"Iteration number", "average IoU per epoch, with stdev",show_val)
 
     x = [i for i in range(len(trainer.acc_mu))]
     y = np.array(trainer.acc_mu)
+    y_val = np.array(trainer.val_acc_mu)
     e = np.array(trainer.acc_sigma)
+    e_val = np.array(trainer.val_acc_sigma)
 
-    plt.plot(x, y, marker='o', linestyle='-', color='b', label="mean")
-    plt.fill_between(x, y - e, y + e, color='b', alpha=0.2, label="Standard deviation")
-    plt.xlabel("Iteration number")
-    plt.ylabel("average acc per epoch, with stdev")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.6)
-
-    plt.show()
+    plot_metric(x,y,e,y_val,e_val,"Iteration number", "average acc per epoch, with stdev",show_val)

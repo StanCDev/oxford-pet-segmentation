@@ -9,9 +9,12 @@ import numpy as np
 
 from utils import IoU, accuracy, dice
 
-red_scale = 1/3 * 1/0.103
-green_scale = 1/3* 1/0.194
-background_scale = 1/3*1/0.704
+# red_scale = 1/3 * 1/0.103
+# green_scale = 1/3* 1/0.194
+# background_scale = 1/3*1/0.704
+red_scale = 1/0.103
+green_scale = 1/0.194
+background_scale = 1/0.704
 
 
 class Trainer(object):
@@ -212,8 +215,9 @@ class Trainer(object):
         acc = []
         iou = []
         dices = []
+        n = len(dataloader)
         with torch.no_grad():
-            for _, batch in enumerate(dataloader):
+            for i, batch in enumerate(dataloader):
                 if self.nn_type == "CLIP":
                     (prompt, x, y, _) = batch
                     assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
@@ -246,6 +250,8 @@ class Trainer(object):
                     acc.append(acc_score)
                     iou.append(IoU_score)
                     dices.append(dice_score)
+                    print('\rPredicted sample {}/{}: acc: {:.3f}, IoU : {:.3f}, Dice score: {:.3f}'.
+                        format(i + 1, n, acc_score, IoU_score, dice_score), end='')
         
         if display_metrics:
             iou = np.array(iou)
@@ -261,6 +267,7 @@ class Trainer(object):
 
             print(f"Validation accuracy = {np.array(acc).mean()}")
             print(f"Validation IoU = {np.array(iou).mean()}")
+            print(f"Validation Dice = {np.array(dices).mean()}")
         return torch.cat(pred_labels)
     
     def fit(self, training_data : Dataset, validation_data : Dataset = None):

@@ -31,6 +31,11 @@ def main(args):
     ## 1. Load data
     base_path : Path = None
     base_path_test : Path = None
+    
+    base_path_test_unresized = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Test/")
+    json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json")
+    json_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_test.json")
+
     if args.nn_type == "CLIP":
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
         base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_test/")
@@ -41,15 +46,22 @@ def main(args):
     x_y_train = SegmentationDataset(
         Path(base_path / "train"), 
         Path(base_path / "label"),
-        Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json"),
+        json_path,
         nn_type=args.nn_type,
         )
     x_y_test = None
+    x_y_test_unresized = None
     if args.test:
         x_y_test = SegmentationDataset(
             Path(base_path_test / "train"),
             Path(base_path_test / "label"),
-            Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_test.json"),
+            json_path_test,
+            nn_type=args.nn_type,
+        )
+        x_y_test_unresized = SegmentationDataset(
+            Path(base_path_test / "color"),
+            Path(base_path_test / "label"),
+            json_path_test,
             nn_type=args.nn_type,
         )
 

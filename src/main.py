@@ -122,11 +122,11 @@ def main(args):
 
     ## 5. predict on unseen data
     if not args.evaluate_val and not args.test:
-        preds_val = method_obj.predict(x_y_val, display_metrics = True)
+        preds_val = method_obj.predict(x_y_val, display_metrics = True, nn_save_output=False)
 
     if args.test:
         print("Test dataset metrics:")
-        preds_test = method_obj.predict(x_y_test, display_metrics = True)
+        preds_test = method_obj.predict(x_y_test, display_metrics = True, nn_save_output=True)
 
     ## 6. Saving and loading the model
     if args.save is not None:

@@ -195,7 +195,7 @@ class Trainer(object):
         if val_dataloader:
             self.predict_torch(dataloader=val_dataloader, display_metrics=True)
 
-    def predict_torch(self, dataloader, display_metrics : bool = False):
+    def predict_torch(self, dataloader, display_metrics : bool = False, nn_save_output : bool = False):
         """
         Predict the validation/test dataloader labels using the model.
 
@@ -315,7 +315,7 @@ class Trainer(object):
 
         return self.predict(training_data)
 
-    def predict(self, test_data : Dataset, display_metrics : bool = False):
+    def predict(self, test_data : Dataset, display_metrics : bool = False, nn_save_output : bool = False):
         """
         Runs prediction on the test data.
 
@@ -329,7 +329,7 @@ class Trainer(object):
         # First, prepare data for pytorch
         test_dataloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=False)
 
-        pred_labels = self.predict_torch(test_dataloader, display_metrics=display_metrics)
+        pred_labels = self.predict_torch(test_dataloader, display_metrics=display_metrics, nn_save_output=nn_save_output)
 
         # We return the labels after transforming them into numpy array.
         return pred_labels.cpu().numpy()

@@ -151,7 +151,8 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
     print(f"Processing complete: {count}/{nbr_images} images processed.")
     
 
-mask_centre_directory(src_dir=Path(src_dir), dest_dir=Path(dest_dir), src_dir_label=Path(src_dir_label), dest_dir_label=Path(dest_dir_label), dim =dim, print_progress=True)
+if __name__ == "__main__":
+    mask_centre_directory(src_dir=Path(src_dir), dest_dir=Path(dest_dir), src_dir_label=Path(src_dir_label), dest_dir_label=Path(dest_dir_label), dim =dim, print_progress=True)
 
 
 

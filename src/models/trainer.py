@@ -250,13 +250,14 @@ class Trainer(object):
                     y = y.cpu().detach()
                     y_pred_one_hot = y_pred_one_hot.cpu().detach()
                     ground_truths = ground_truths.cpu().detach()
+                    y_pred_classes = y_pred_classes.cpu().detach()
 
                     IoU_score = IoU(y.numpy(), y_pred_one_hot.numpy())
                     acc_score = accuracy(ground_truths.numpy(),y_pred_classes.numpy())
                     dice_score = dice(y.numpy(), y_pred_one_hot.numpy())
 
                     # if i % 100 == 0 or IoU_score < 0.3:
-                    if IoU_score < 0.3:
+                    if IoU_score < 0.2:
                         base_dir = f"/Users/stancastellana/Desktop/img/outputs/{self.nn_type}"
                         folder = Path(base_dir)
                         new_folder = f"{i}"

@@ -1,20 +1,12 @@
 from pathlib import Path
-from torchvision.transforms import v2, InterpolationMode
-from PIL import Image
 import numpy as np
 import cv2
-import numpy as np
 
 src_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train//"
 dest_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train_centre//"
 
 src_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label//"
 dest_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label_centre//"
-
-#src_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res_out//"
-#dest_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res_out//train_centre//"
-#src_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res_out//label//"
-#dest_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res_out//label_centre//"
 dim = (256, 256)
 
 

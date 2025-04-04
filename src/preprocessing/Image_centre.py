@@ -2,12 +2,21 @@ from pathlib import Path
 import numpy as np
 import cv2
 
-src_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train//"
-dest_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train_centre//"
+#src_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train//"
+#dest_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train_centre//"
 
-src_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label//"
-dest_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label_centre//"
-dim = (256, 256)
+#src_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label//"
+#dest_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label_centre//"
+
+src_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//train"
+dest_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//train//train_centre//"
+src_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//"
+dest_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//label_centre//"
+
+
+
+
+dim = (352, 352)
 
 
 
@@ -61,7 +70,7 @@ def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid
             # draw a point on a blank image at the centroid position (red for cats and green for dogs)
             img_zeros = np.zeros_like(img)
             if label[centre[1], centre[0]][1] == 128:
-                img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 255, 0), thickness=-1)
+                img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 0, 255), thickness=-1)
             elif label[centre[1], centre[0]][2] == 128:
                 img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 0, 255), thickness=-1)
             #run a guassian filter on the single point so that it has a radius of 9 pixels

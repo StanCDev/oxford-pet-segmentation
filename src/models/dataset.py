@@ -40,6 +40,9 @@ class SegmentationDataset(Dataset):
         return len(self.index_mapping)
 
     def __getitem__(self, idx):
+        """
+        Returns the pair of images (image, label) unless nn_type is CLIP. In that case returns (prompt, image, label, index=idx)
+        """
         extension_train = ".jpg"
         extension_label = ".png"
 

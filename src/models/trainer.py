@@ -2,16 +2,21 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchvision.transforms.functional import to_pil_image
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
 import numpy as np
+from pathlib import Path
 
-from utils import IoU, accuracy, dice
+from utils import IoU, accuracy, dice, color_mask
 
-red_scale = 1/3 * 1/0.103
-green_scale = 1/3* 1/0.194
-background_scale = 1/3*1/0.704
+# red_scale = 1/3 * 1/0.103
+# green_scale = 1/3* 1/0.194
+# background_scale = 1/3*1/0.704
+red_scale = 1/0.103
+green_scale = 1/0.194
+background_scale = 1/0.704
 
 
 class Trainer(object):
@@ -212,8 +217,9 @@ class Trainer(object):
         acc = []
         iou = []
         dices = []
+        n = len(dataloader)
         with torch.no_grad():
-            for _, batch in enumerate(dataloader):
+            for i, batch in enumerate(dataloader):
                 if self.nn_type == "CLIP":
                     (prompt, x, y, _) = batch
                     assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
@@ -223,10 +229,12 @@ class Trainer(object):
                     x = x.to(self.device)
                     y = y.to(self.device)
 
+                img = to_pil_image(x[0]).convert("RGB")
                 if self.nn_type == "CLIP":
                     torch_to_PIL = transforms.ToPILImage()
                     # 5.2 Run forward pass.
-                    logits = self.model.forward(torch_to_PIL(x[0]).convert("RGB"), prompt)
+                    img = torch_to_PIL(x[0]).convert("RGB")
+                    logits = self.model.forward(img, prompt)
                     ground_truths = torch.argmax(y, dim=1)
                 else:
                     # 5.2 Run forward pass.
@@ -239,13 +247,37 @@ class Trainer(object):
                 pred_labels.append(y_pred_classes) ### want to take the max along channels
 
                 if display_metrics:
-                    IoU_score = IoU(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
-                    acc_score = accuracy(y=ground_truths.cpu().detach().numpy(),y_pred=y_pred_classes.cpu().detach().numpy())
-                    dice_score = dice(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+                    y = y.cpu().detach()
+                    y_pred_one_hot = y_pred_one_hot.cpu().detach()
+                    ground_truths = ground_truths.cpu().detach()
+
+                    IoU_score = IoU(y.numpy(), y_pred_one_hot.numpy())
+                    acc_score = accuracy(ground_truths.numpy(),y_pred_classes.numpy())
+                    dice_score = dice(y.numpy(), y_pred_one_hot.numpy())
+
+                    # if i % 100 == 0 or IoU_score < 0.3:
+                    if IoU_score < 0.3:
+                        base_dir = f"/Users/stancastellana/Desktop/img/outputs/{self.nn_type}"
+                        folder = Path(base_dir)
+                        new_folder = f"{i}"
+                        new_path = folder / new_folder
+                        new_path.mkdir(parents=True, exist_ok=True)
+
+                        img.save(new_path / "img.png")
+
+                        ground_truths = ground_truths[0]
+                        rgb_image = color_mask(ground_truths)
+                        rgb_image.save(new_path / "gt.png")
+
+                        y_pred_classes = y_pred_classes[0]
+                        rgb_image = color_mask(y_pred_classes)
+                        rgb_image.save(new_path / "pred.png")
 
                     acc.append(acc_score)
                     iou.append(IoU_score)
                     dices.append(dice_score)
+                    print('\rPredicted sample {}/{}: acc: {:.3f}, IoU : {:.3f}, Dice score: {:.3f}'.
+                        format(i + 1, n, acc_score, IoU_score, dice_score), end='')
         
         if display_metrics:
             iou = np.array(iou)
@@ -261,6 +293,7 @@ class Trainer(object):
 
             print(f"Validation accuracy = {np.array(acc).mean()}")
             print(f"Validation IoU = {np.array(iou).mean()}")
+            print(f"Validation Dice = {np.array(dices).mean()}")
         return torch.cat(pred_labels)
     
     def fit(self, training_data : Dataset, validation_data : Dataset = None):

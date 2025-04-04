@@ -30,10 +30,13 @@ def main(args):
 
     ## 1. Load data
     base_path : Path = None
+    base_path_test : Path = None
     if args.nn_type == "CLIP":
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
+        base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_test/")
     else:
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/")
+        base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
 
     x_y_train = SegmentationDataset(
         Path(base_path / "train"), 
@@ -42,6 +45,13 @@ def main(args):
         nn_type=args.nn_type,
         )
     x_y_test = None
+    if args.test:
+        x_y_test = SegmentationDataset(
+            Path(base_path_test / "train"),
+            Path(base_path_test / "label"),
+            Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_test.json"),
+            nn_type=args.nn_type,
+        )
 
     ## 2. Make a validation set
     if not(args.cv_ratio >= 0 and args.cv_ratio <= 1):
@@ -109,19 +119,23 @@ def main(args):
             preds_train = method_obj.fit(x_y_train, x_y_val)
         else:
             preds_train = method_obj.fit(x_y_train)
-    else:
-        preds_train = method_obj.predict(x_y_train)
 
     ## 5. predict on unseen data
-    if not args.evaluate_val:
+    if not args.evaluate_val and not args.test:
         preds_val = method_obj.predict(x_y_val, display_metrics = True)
+
+    if args.test:
+        print("Test dataset metrics:")
+        preds_test = method_obj.predict(x_y_test, display_metrics = True)
 
     ## 6. Saving and loading the model
     if args.save is not None:
         torch.save(model.state_dict(), args.save)
     # np.save("predictions", preds)
-
-    plot_training_metrics(method_obj, show_val=args.evaluate_val)
+    if args.train:
+        plot_training_metrics(method_obj, show_val=args.evaluate_val)
+    
+    return
 
 
 
@@ -138,7 +152,8 @@ if __name__ == '__main__':
     parser.add_argument('--save', default=None, type=str, help="path where you want to save your model")
     parser.add_argument('--load', default=None, type=str, help="path where you want to load your model")
 
-    parser.add_argument('--train',action="store_true",default=False)
+    parser.add_argument('--train',action="store_true",default=False, help = "Train model")
+    parser.add_argument('--test',action="store_true",default=False,help="Evaluate model on test dataset")
     parser.add_argument('--evaluate_val', action="store_true", help = "At every epoch, compute and store metrics on validation set")
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")

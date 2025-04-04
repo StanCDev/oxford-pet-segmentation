@@ -4,6 +4,8 @@ import os
 import random
 from PIL import Image
 
+from torchvision.transforms.functional import to_pil_image
+
 import matplotlib.pyplot as plt
 
 WHITE = (255,255,255)
@@ -33,7 +35,11 @@ COLOR_MAP = {
     RED: CAT,
 }
 
-COLOR_MAP_INV = dict([((one_hot[0], one_hot[1], one_hot[2]), color) for color, one_hot in COLOR_MAP.items()])
+COLOR_MAP_INV = {
+    (1,0,0): CAT,
+    (0,1,0): DOG,
+    (0,0,1): BACKGROUND
+}
 
 def label_to_one_hot(y: Image):
     """
@@ -86,6 +92,18 @@ def one_hot_to_label(y: Image):
         raise ValueError("Label image contains unknown colors.")
 
     return out
+
+def color_mask(y: torch.Tensor):
+    H, W = y.shape
+    # Create an empty RGB image (H, W, 3)
+    rgb_image = torch.zeros((H, W, 3), dtype=torch.uint8)
+
+    # Define class-to-color mapping
+    rgb_image[y == 0] = torch.tensor([128, 0, 0], dtype=torch.uint8)    # Black (Class 0)
+    rgb_image[y == 1] = torch.tensor([0, 128, 0], dtype=torch.uint8)  # Red (Class 1)
+    rgb_image[y == 2] = torch.tensor([0, 0, 0], dtype=torch.uint8)  # Green (Class 2)
+    rgb_image = to_pil_image(rgb_image.permute(2,0,1)).convert("RGB")
+    return rgb_image
 
 
 # Metrics

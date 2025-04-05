@@ -13,6 +13,10 @@ dest_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test
 src_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//"
 dest_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//label_centre//"
 
+src_dir = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/train"
+dest_dir = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt2/train"
+src_dir_label = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/label"
+dest_dir_label = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt2/label"
 
 
 
@@ -81,23 +85,19 @@ def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid
             #clip the image and label so no rgb value is above 255
             output_img = np.clip(output_img, 0, 255).astype(np.uint8)
             output_label = np.clip(output_label, 0, 255).astype(np.uint8)
-
-
-
         else:
             # if the centroid is not within the mask, return the original image and label
             print(f"{filename} has no valid mask found at the centroid.")
             list_centroid_not_in_mask.append(filename) 
             output_label = label.copy()
             output_img = img.copy()
-
     else:
         #if no centroid is found, return the original image and label
         print(f"{filename} has no valid centriod in mask {np.unique(label)}")
         list_no_valid_centroid.append(filename)
         output_label = label.copy()
         output_img = img.copy()
-    return output_img, output_label, centre, list_no_valid_centroid, list_centroid_not_in_mask
+    return output_img, output_label, centre
 
 def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, dest_dir_label: Path, dim: tuple [int,int] ,print_progress: bool = True):
     """
@@ -120,8 +120,8 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
     dir_files = list(src_dir_label.iterdir())
     nbr_images = len([f for f in dir_files if f.suffix.lower() in accepted_file_types])
     count = 0
-    list_no_valid_centroid=list()
-    list_centroid_not_in_mask=list()
+    list_no_valid_centroid : list[Path] = list()
+    list_centroid_not_in_mask : list[Path] =list()
 
     for label_path in dir_files:
         if label_path.suffix.lower() in accepted_file_types:
@@ -129,19 +129,23 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
             if label is None:
                 print(f"Error loading label: {label_path}")
                 continue
+
             img_path = src_dir / f"{Path(label_path).stem}.jpg"
             img = cv2.imread(str(img_path))
             if img is None:
                 print(f"Error loading image: {img_path}")
                 continue
-          
-            output_img, output_label, centre, list_no_valid_centroid, list_centroid_not_in_mask = mask_centre(img, label, label_path, list_no_valid_centroid, list_centroid_not_in_mask)
+
+            output_img, output_label, centre = mask_centre(img, label, label_path, list_no_valid_centroid, list_centroid_not_in_mask)
+            ### filename is label_path
 
             if output_label is not None:
                 output_path_label = dest_dir_label / label_path.name
-                cv2.imwrite(str(output_path_label), output_label)
+                if label_path not in list_no_valid_centroid and label_path not in list_centroid_not_in_mask:
+                    cv2.imwrite(str(output_path_label), output_label)
                 output_path_img = dest_dir / img_path.name
-                cv2.imwrite(str(output_path_img), output_img)
+                if label_path not in list_no_valid_centroid and label_path not in list_centroid_not_in_mask:
+                    cv2.imwrite(str(output_path_img), output_img)
                 count += 1
                 if print_progress:
                     print(f"Processed {count}/{nbr_images}: {img_path.name}")
@@ -150,7 +154,6 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
     print(f"List of images with no valid centroid so no point added: {len(list_no_valid_centroid)}")
     print(f"List of images with centroid not in mask so no point added : {len(list_centroid_not_in_mask)}")
     print(f"Processing complete: {count}/{nbr_images} images processed.")
-    
 
 if __name__ == "__main__":
     mask_centre_directory(src_dir=Path(src_dir), dest_dir=Path(dest_dir), src_dir_label=Path(src_dir_label), dest_dir_label=Path(dest_dir_label), dim =dim, print_progress=True)

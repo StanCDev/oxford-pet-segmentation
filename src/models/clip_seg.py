@@ -73,7 +73,7 @@ class CLIP_Decoder(nn.Module):
     # Returns: The reconstructed image.
     
     def __init__(self, reduce_dim=128, cond_layer = None,
-                 extract_layers=[2,4,6, 8, 10, 11], mha_heads=4):
+                 extract_layers=[8, 9, 10, 11], mha_heads=4):
         super(CLIP_Decoder, self).__init__()
         
         self.cond_layer = cond_layer

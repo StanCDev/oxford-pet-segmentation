@@ -257,7 +257,7 @@ class Trainer(object):
                     dice_score = dice(y.numpy(), y_pred_one_hot.numpy())
 
                     # if i % 100 == 0 or IoU_score < 0.3:
-                    if nn_save_output and i == 1500:
+                    if nn_save_output and i == 0:
                         # base_dir = f"/Users/stancastellana/Desktop/img/outputs/{self.nn_type}"
                         base_dir = f"/Users/stancastellana/Desktop/"
                         folder = Path(base_dir)

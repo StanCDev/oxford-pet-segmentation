@@ -43,7 +43,7 @@ def main(args):
     elif args.nn_type == "prompt":
         if args.test:
             raise ValueError("Cannot test yet with prompt NN")
-        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt2/")
+        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/")
         base_path_test = None
         json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt.json")
     else:

@@ -1,20 +1,20 @@
 """
-Main preprocessing script that resizes + augments data 
+Main preprocessing script that resizes + augments data, generates a json mapping, and generates prompt dataset
 """
 import argparse
 from pathlib import Path
-import json
 
 from resizing import resize_directory
 from augmentation import aug_directory
 from make_json import make_json_file
+from image_centre import mask_centre_directory
 
 from torchvision.transforms import InterpolationMode
 
 # train_dim = (256,256)
 # label_dim = (256,256)
 train_dim = (352,352)
-label_dim = (224,224)
+label_dim = (352,352)#(224,224)
 
 
 def main(args) -> None:
@@ -58,6 +58,9 @@ def main(args) -> None:
     ###4. Create json mapping
     if args.json_file:
         make_json_file(train,label,Path(args.json))
+
+    if args.prompt_image:
+        mask_centre_directory(train, label, True)
     return
 
 
@@ -70,6 +73,8 @@ if __name__ == "__main__":
     parser.add_argument('--resize', action="store_true",default=False)
     parser.add_argument('--augment', action="store_true",default=False)
     parser.add_argument('--json_file', action="store_true",default=False)
+    parser.add_argument('--prompt_image', action="store_true",default=False)
+    
     args = parser.parse_args()
     if not(args.train) or not(args.label):
         raise ValueError("Must input train and label path if resize/augment of images wanted or json map")

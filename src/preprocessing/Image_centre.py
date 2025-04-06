@@ -1,30 +1,14 @@
+"""
+Pre processing for the prompt images
+"""
 from pathlib import Path
 import numpy as np
 import cv2
-
-#src_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train//"
-#dest_dir = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//train_centre//"
-
-#src_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label//"
-#dest_dir_label = "C://Users//rhodr//Documents//CV_Dataset//TrainVal//label_centre//"
-
-src_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//train"
-dest_dir = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//train//train_centre//"
-src_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//"
-dest_dir_label = "C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//label//label_centre//"
-
-src_dir = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/train"
-dest_dir = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt2/train"
-src_dir_label = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/label"
-dest_dir_label = "/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt2/label"
-
-
+import os
 
 dim = (352, 352)
 
-
-
-def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid_not_in_mask) -> np.ndarray:
+def mask_centre(img, label, filename: str, list_no_valid_centroid : list[Path], list_centroid_not_in_mask : list[Path]) -> np.ndarray:
     '''
     Calculate the centroid of a binary mask and draws it on the image and mask.
 
@@ -62,7 +46,7 @@ def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid
             return centre_x, centre_y
         else:
             return None
-
+    ### 1. Find centroid ###
     # Convert the label image to grayscale and create a binary mask
     lab_gray = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
     _, binary_mask = cv2.threshold(lab_gray, 1, 255, cv2.THRESH_BINARY)
@@ -73,15 +57,12 @@ def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid
         if label[centre[1], centre[0]][1] == 128 or label[centre[1], centre[0]][2] == 128:
             # draw a point on a blank image at the centroid position (red for cats and green for dogs)
             img_zeros = np.zeros_like(img)
-            if label[centre[1], centre[0]][1] == 128:
-                img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 0, 255), thickness=-1)
-            elif label[centre[1], centre[0]][2] == 128:
-                img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 0, 255), thickness=-1)
+            img_pt = cv2.circle(img_zeros, centre, radius=5, color=(0, 0, 255), thickness=-1)
             #run a guassian filter on the single point so that it has a radius of 9 pixels
             img_pt_blur = cv2.GaussianBlur(img_pt, (9, 9), 0)
             #combine the original image and label with the blurred point (weight the image down by 5% so the pixels are visible on white images)
-            output_img = cv2.addWeighted(img, .95, img_pt_blur, 1, 0)
-            output_label = cv2.addWeighted(label, .95, img_pt_blur, 1, 0)
+            output_img = cv2.addWeighted(img, .75, img_pt_blur, 1, 0)
+            output_label = cv2.addWeighted(label, .75, img_pt_blur, 1, 0)
             #clip the image and label so no rgb value is above 255
             output_img = np.clip(output_img, 0, 255).astype(np.uint8)
             output_label = np.clip(output_label, 0, 255).astype(np.uint8)
@@ -99,7 +80,7 @@ def mask_centre(img, label, filename: str, list_no_valid_centroid, list_centroid
         output_img = img.copy()
     return output_img, output_label, centre
 
-def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, dest_dir_label: Path, dim: tuple [int,int] ,print_progress: bool = True):
+def mask_centre_directory(train_dir: Path, label_dir: Path, print_progress: bool = True):
     """
     Calculate the centroid of a binary mask and draw it on the image.
 
@@ -109,7 +90,6 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
         dest_dir (Pathlib.Path): path where resized images are saved.
         src_dir_lab (Pathlib.Path): path where source label images are located.
         dest_dir_lab (Pathlib.Path): path where resized label images are saved.
-        dim (tuple): dimensions of the image
         print_progress (bool): whether to print progress or not
 
     Returns:
@@ -117,7 +97,7 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
         None
     """
     accepted_file_types = {".jpg", ".jpeg", ".png"}
-    dir_files = list(src_dir_label.iterdir())
+    dir_files = list(label_dir.iterdir())
     nbr_images = len([f for f in dir_files if f.suffix.lower() in accepted_file_types])
     count = 0
     list_no_valid_centroid : list[Path] = list()
@@ -130,22 +110,21 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
                 print(f"Error loading label: {label_path}")
                 continue
 
-            img_path = src_dir / f"{Path(label_path).stem}.jpg"
+            img_path = train_dir / f"{Path(label_path).stem}.jpg"
             img = cv2.imread(str(img_path))
             if img is None:
                 print(f"Error loading image: {img_path}")
                 continue
 
-            output_img, output_label, centre = mask_centre(img, label, label_path, list_no_valid_centroid, list_centroid_not_in_mask)
-            ### filename is label_path
+            output_img, output_label, _ = mask_centre(img, label, label_path, list_no_valid_centroid, list_centroid_not_in_mask)
 
             if output_label is not None:
-                output_path_label = dest_dir_label / label_path.name
+                ### Deleting old mask + image and replacing it with new
+                os.remove(label_path)
+                os.remove(img_path)
                 if label_path not in list_no_valid_centroid and label_path not in list_centroid_not_in_mask:
-                    cv2.imwrite(str(output_path_label), output_label)
-                output_path_img = dest_dir / img_path.name
-                if label_path not in list_no_valid_centroid and label_path not in list_centroid_not_in_mask:
-                    cv2.imwrite(str(output_path_img), output_img)
+                    cv2.imwrite(str(label_path), output_label)
+                    cv2.imwrite(str(img_path), output_img)
                 count += 1
                 if print_progress:
                     print(f"Processed {count}/{nbr_images}: {img_path.name}")
@@ -154,13 +133,3 @@ def mask_centre_directory(src_dir: Path, dest_dir: Path, src_dir_label: Path, de
     print(f"List of images with no valid centroid so no point added: {len(list_no_valid_centroid)}")
     print(f"List of images with centroid not in mask so no point added : {len(list_centroid_not_in_mask)}")
     print(f"Processing complete: {count}/{nbr_images} images processed.")
-
-if __name__ == "__main__":
-    mask_centre_directory(src_dir=Path(src_dir), dest_dir=Path(dest_dir), src_dir_label=Path(src_dir_label), dest_dir_label=Path(dest_dir_label), dim =dim, print_progress=True)
-
-
-
-
-
-
-

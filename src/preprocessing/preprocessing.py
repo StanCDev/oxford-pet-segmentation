@@ -11,10 +11,6 @@ from image_centre import mask_centre_directory
 
 from torchvision.transforms import InterpolationMode
 
-# train_dim = (256,256)
-# label_dim = (256,256)
-train_dim = (352,352)
-label_dim = (352,352)#(224,224)
 
 
 def main(args) -> None:
@@ -31,6 +27,9 @@ def main(args) -> None:
     diff = train_set.difference(label_set)
     print(f"Directories differ in {len(diff)} file(s) being: {diff}")
 
+    train_dim = (args.train_dim, args.train_dim)
+    label_dim = (args.label_dim, args.label_dim)
+    
     ###2. Resize all images
     if args.resize:
         resize_directory(train, train_dim, True)
@@ -74,6 +73,9 @@ if __name__ == "__main__":
     parser.add_argument('--augment', action="store_true",default=False)
     parser.add_argument('--json_file', action="store_true",default=False)
     parser.add_argument('--prompt_image', action="store_true",default=False)
+
+    parser.add_argument('--train_dim', default=352, type=int, help="training image dimension")
+    parser.add_argument('--label_dim', default=224, type=int, help="label image dimension")
     
     args = parser.parse_args()
     if not(args.train) or not(args.label):

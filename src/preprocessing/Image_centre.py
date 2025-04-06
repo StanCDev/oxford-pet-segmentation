@@ -123,7 +123,7 @@ def mask_centre_directory(train_dir: Path, label_dir: Path, print_progress: bool
                 os.remove(label_path)
                 os.remove(img_path)
                 if label_path not in list_no_valid_centroid and label_path not in list_centroid_not_in_mask:
-                    cv2.imwrite(str(label_path), output_label)
+                    cv2.imwrite(str(label_path), label)
                     cv2.imwrite(str(img_path), output_img)
                 count += 1
                 if print_progress:

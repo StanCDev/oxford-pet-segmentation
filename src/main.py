@@ -39,9 +39,19 @@ def main(args):
     if args.nn_type == "CLIP":
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
         base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_test/")
+
+    elif args.nn_type == "prompt":
+        if args.test:
+            raise ValueError("Cannot test yet with prompt NN")
+        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/")
+        base_path_test = None
+        json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt.json")
     else:
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/")
         base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
+
+    if args.nn_type == "prompt":
+        args.nn_type = "CLIP"
 
     x_y_train = SegmentationDataset(
         Path(base_path / "train"), 
@@ -93,8 +103,10 @@ def main(args):
     model = None
     if args.nn_type == "unet":
         model = UNet(w=256,h=256,ch=3, ch_mult=8)
+    
     elif args.nn_type == "autoencoder":
         model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+    
     elif args.nn_type == "autoencoder_segmentation":
         if args.load is None:
             raise ValueError("If nn_type is autoencoder_segmentation then --load must be specified as a loaded autoencoder needs to exist")
@@ -106,7 +118,8 @@ def main(args):
 
         for param in model.encoder.parameters():
             param.requires_grad = False  # No gradients for encoder
-    elif args.nn_type == "CLIP":
+    
+    elif args.nn_type == "CLIP" or args.nn_type == "prompt":
         if args.nn_batch_size != 1:
             raise ValueError("Batch size for CLIP must be 1")
         model = Clip()

@@ -258,9 +258,10 @@ class Trainer(object):
 
                     # if i % 100 == 0 or IoU_score < 0.3:
                     if nn_save_output and i == 0:
-                        base_dir = f"/Users/stancastellana/Desktop/img/outputs/{self.nn_type}"
+                        # base_dir = f"/Users/stancastellana/Desktop/img/outputs/{self.nn_type}"
+                        base_dir = f"/Users/stancastellana/Desktop/"
                         folder = Path(base_dir)
-                        new_folder = f"{i}"
+                        new_folder = f"{i}_CLIP1"
                         new_path = folder / new_folder
                         new_path.mkdir(parents=True, exist_ok=True)
 
@@ -273,6 +274,7 @@ class Trainer(object):
                         y_pred_classes = y_pred_classes[0]
                         rgb_image = color_mask(y_pred_classes)
                         rgb_image.save(new_path / "pred.png")
+                        print(f"sample {i}, IoU = {IoU_score}")
 
                     acc.append(acc_score)
                     iou.append(IoU_score)

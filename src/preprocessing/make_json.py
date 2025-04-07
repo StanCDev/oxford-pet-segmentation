@@ -8,13 +8,16 @@ def make_json_file(train : Path, label: Path, json_path : Path, print_progress :
     i = 0
     mapping : dict[int, str] = {}
     sorted_dir = sorted(train.iterdir())
+
+    label_dir = set((path.stem for path in label.iterdir()))
+
     nbr_images = 0
     for img in sorted_dir:
-        if img.suffix.lower() in accepted_file_types:
+        if img.suffix.lower() in accepted_file_types and img.stem in label_dir:
             nbr_images += 1
     
     for train in sorted_dir:
-        if train.suffix.lower() in accepted_file_types: 
+        if train.suffix.lower() in accepted_file_types and train.stem in label_dir: 
             mapping[i] = train.stem
             i += 1
             if print_progress:

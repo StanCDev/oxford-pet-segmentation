@@ -1,9 +1,13 @@
+import torch
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageDraw, ImageTk
 import os  # Import os module to list files
 from pathlib import Path  # Import Path for better path handling
-
+import numpy as np
+import clip_seg 
+import resizing 
+import cv2
 #out_dir = Path("C://Users//rhodr//OneDrive//Documents//GitHub//CV_mini_project//test//res//")# Output directory for saving images"
 
 # Initialize global variables
@@ -51,6 +55,7 @@ def open_file(event):
     canvas.create_image(0, 0, anchor=tk.NW, image=photo)  # Display image on the canvas
     draw = ImageDraw.Draw(img)  # Update the draw object for the new image
 
+
 # Tkinter UI setup
 root = tk.Tk()
 canvas = tk.Canvas(root, width=500, height=500)
@@ -84,6 +89,15 @@ root.mainloop()
 print(f'Clicked x and y co-ordinates {last_clicked_point}')
 print(f'Image dimensions are {img.size}')
 
+
+model = clip_seg.Clip()  
+model.load_state_dict(torch.load(r"C://Users//rhodr//Documents//CV_Dataset//CLIP_prompt.pth"))  # Load the model weights
+img_resize = resizing.resize_image(img, (352,352))  # Resize the image to the model's input size
+y= model.forward(img_resize, 'Cat or dog')  # Forward pass through the model
+
+print(y.shape)
+print(y.unique())
+print(y)
 
 
 

@@ -16,6 +16,37 @@ from utils import seed_everything, plot_training_metrics
 
 seed = 100
 
+def load_model(args):
+    model = None
+    if args.nn_type == "unet":
+        model = UNet(w=256,h=256,ch=3, ch_mult=8)
+    
+    elif args.nn_type == "autoencoder":
+        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+    
+    elif args.nn_type == "autoencoder_segmentation":
+        if args.load is None:
+            raise ValueError("If nn_type is autoencoder_segmentation then --load must be specified as a loaded autoencoder needs to exist")
+        pre_trained = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+        pre_trained.load_state_dict(torch.load(args.load, weights_only=True))
+        
+        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
+        model.encoder = pre_trained.encoder
+
+        for param in model.encoder.parameters():
+            param.requires_grad = False  # No gradients for encoder
+    
+    elif args.nn_type == "CLIP":
+        if args.nn_batch_size != 1:
+            raise ValueError("Batch size for CLIP must be 1")
+        model = Clip()
+    else:
+        raise ValueError("Inputted model is not a valid model")
+    
+    if args.load is not None:
+        model.load_state_dict(torch.load(args.load, weights_only=True))
+    return model
+
 
 def main(args):
     """
@@ -108,35 +139,7 @@ def main(args):
 
 
     ## 3. Initialize the method you want to use.
-    model = None
-    if args.nn_type == "unet":
-        model = UNet(w=256,h=256,ch=3, ch_mult=8)
-    
-    elif args.nn_type == "autoencoder":
-        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
-    
-    elif args.nn_type == "autoencoder_segmentation":
-        if args.load is None:
-            raise ValueError("If nn_type is autoencoder_segmentation then --load must be specified as a loaded autoencoder needs to exist")
-        pre_trained = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
-        pre_trained.load_state_dict(torch.load(args.load, weights_only=True))
-        
-        model = AutoEncoder(w=256,h=256,in_channels=3,out_channels=3, ch_mult=4)
-        model.encoder = pre_trained.encoder
-
-        for param in model.encoder.parameters():
-            param.requires_grad = False  # No gradients for encoder
-    
-    elif args.nn_type == "CLIP":
-        if args.nn_batch_size != 1:
-            raise ValueError("Batch size for CLIP must be 1")
-        model = Clip()
-    else:
-        raise ValueError("Inputted model is not a valid model")
-    
-    if args.load is not None:
-        model.load_state_dict(torch.load(args.load, weights_only=True))
-
+    model = load_model(args)
     summary(model)
 
     model.to(device)
@@ -176,7 +179,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--nn_type', default="unet",
-                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' Note that CLIP only works with a batch size of 1")
+                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | 'autoencoder_segmentation' | 'CLIP' Note that CLIP only works with a batch size of 1")
     parser.add_argument('--prompt',action="store_true",default=False, help="Train on prompt dataset")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
     parser.add_argument('--device', type=str, default="cpu",

@@ -11,9 +11,6 @@ from pathlib import Path
 
 from utils import IoU, accuracy, dice, color_mask
 
-# red_scale = 1/3 * 1/0.103
-# green_scale = 1/3* 1/0.194
-# background_scale = 1/3*1/0.704
 red_scale = 1/0.103
 green_scale = 1/0.194
 background_scale = 1/0.704

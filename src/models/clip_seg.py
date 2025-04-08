@@ -91,12 +91,6 @@ class CLIP_Decoder(nn.Module):
             nn.Conv2d(reduce_dim, reduce_dim, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.ConvTranspose2d(reduce_dim, reduce_dim // 2, kernel_size=4, stride=4),
-            ###CLIP 2
-            # nn.ReLU(),
-            # nn.ConvTranspose2d(reduce_dim // 2, reduce_dim // 4, kernel_size=4, stride=4),
-            # nn.ReLU(),
-            # nn.ConvTranspose2d(reduce_dim // 4, 3, kernel_size=4, stride=2, padding=1),
-            ###CLIP 1
             nn.ReLU(),
             nn.ConvTranspose2d(reduce_dim // 2, 3, kernel_size=8, stride=8),
         )

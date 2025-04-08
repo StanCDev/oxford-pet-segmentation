@@ -142,10 +142,14 @@ def dice(y : np.array , y_pred : np.array):
     assert ch1 == 3, "must have 3 channels"
     
     dice_per_class = []
+    eps=1e-7
     
     for c in range(3):
-        intersection = np.logical_and(y[:, c, :, :], y_pred[:, c, :, :]).sum()
-        dice = intersection / (N1 * w1 * h1)
+        y_c = y[:, c, :, :]
+        y_pred_c = y_pred[:, c, :, :]
+        intersection = np.logical_and(y_c, y_pred_c).sum()
+        total = y_c.sum() + y_pred_c.sum()
+        dice = (2.0 * intersection + eps) / (total + eps)
         dice_per_class.append(dice)
     
     dice_per_class = np.array(dice_per_class)

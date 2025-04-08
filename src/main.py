@@ -13,7 +13,6 @@ from models.dataset import SegmentationDataset
 from torch.utils.data import random_split
 
 from utils import seed_everything, plot_training_metrics
-
 seed = 100
 
 def load_model(args):

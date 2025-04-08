@@ -149,7 +149,7 @@ def dice(y : np.array , y_pred : np.array):
         y_pred_c = y_pred[:, c, :, :]
         intersection = np.logical_and(y_c, y_pred_c).sum()
         total = y_c.sum() + y_pred_c.sum()
-        dice = (2.0 * intersection + eps) / (total + eps)
+        dice = (2.0 * intersection) / (total + eps)
         dice_per_class.append(dice)
     
     dice_per_class = np.array(dice_per_class)

@@ -8,22 +8,25 @@ from pathlib import Path
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-from src.models.dataset import SegmentationDataset
-from src.main import load_model
-from utils import dice
+import matplotlib.pyplot as plt
+
+from models.dataset import SegmentationDataset
+from main import load_model
+from utils import dice, IoU
+from torch.utils.data import random_split
 
 from PIL import Image
 
 def gaussian_noise(img : Image, sigma : int):
     img = np.array(img)
-    Gaussian_noise = np.random.normal(0, sigma, img.shape)
+    Gaussian_noise = np.random.normal(loc=0, scale=sigma, size=img.shape)
     perturb_image = img + Gaussian_noise
     perturb_image = np.clip(perturb_image, 0, 255)
     perturb_image = perturb_image.astype(np.uint8)
     return perturb_image
 
 def gaussian_blur(img : Image, nbr_times : int):
-    assert nbr_times > 0 and nbr_times == int(nbr_times), "Must be an integer greater than 0"
+    assert nbr_times >= 0 and nbr_times == int(nbr_times), "Must be an integer greater than or equal to 0"
     blur_filter = (1/16) * np.array([[1,2,1],[2,4,2],[1,2,1]])
     input_img = np.array(img)
     perturb_image = np.zeros(input_img.shape, dtype=np.uint8)
@@ -52,12 +55,12 @@ def brightness_change(img : Image, factor : int):
     perturb_img = ((input_img).astype(np.int16) + factor).clip(0, 255)        
     perturb_image = perturb_img.astype(np.uint8)
     perturb_image = (np.clip(perturb_image, 0, 255)).astype(np.uint8)
+    return perturb_image
 
 def occlusion(img : Image, edge_len : int):
     # Occlusion in random location by setting a square region to zero
     perturb_image = np.array(img).astype(np.uint8)
     height, width = perturb_image.shape[:2]
-    print(height, width)
     # Get random coordinates for the square region
     x = np.random.randint(0, height)
     y = np.random.randint(0, width)
@@ -68,14 +71,14 @@ def occlusion(img : Image, edge_len : int):
     return perturb_image
 
 perturbation_values = {
-    "gaussian_noise" : [range(0,19,2)],
-    "gaussian_blur" : [range(0,10)],
+    "gaussian_noise" : list(range(0,19,2)),
+    "gaussian_blur" : list(range(0,10)),
     "contrast_increase" : [1.0, 1.01, 1.02, 1.03, 1.04, 1.05, 1.1, 1.15, 1.20, 1.25],
     "contrast_decrease" : [1.0, 0.95, 0.90, 0.85, 0.80, 0.60, 0.40, 0.30, 0.20, 0.10],
-    "brightness_increase" : [5 * i for i in range(0,10)],
-    "brightness_decrease" : [-5 * i for i in range(0,10)],
-    "occlusion" : [5 * i for i in range(0,10)],
-    "salt_and_pepper" : [0.02 * i for i in range(0,10)],
+    "brightness_increase" : list(5 * i for i in range(0,10)),
+    "brightness_decrease" : list(-5 * i for i in range(0,10)),
+    "occlusion" : list(5 * i for i in range(0,10)),
+    "salt_and_pepper" : list(0.02 * i for i in range(0,10)),
 }
 
 perturbation_functions = {
@@ -89,6 +92,18 @@ perturbation_functions = {
     "salt_and_pepper" : salt_and_pepper,
 }
 
+def display(perturbation_results : dict[str, np.array]) -> None:
+    for perturb, y in perturbation_results.items():
+        x = perturbation_values[perturb]
+        x = np.array(x)
+
+        plt.plot(x, y, label=perturb, marker='o')
+        plt.title(f"{perturb} perturbation vs. Dice Score")
+        plt.xlabel(f"{perturb} parameter")
+        plt.ylabel("Average Dice Score")
+        plt.grid(True)
+        plt.show()
+
 
 def main(args):
     model = load_model(args)
@@ -100,23 +115,26 @@ def main(args):
         nn_type=args.nn_type,
         )
     
-    dataloader = DataLoader(x_y, batch_size=1, shuffle=False)
+    train_size = int(0.2 * len(x_y))
+    val_size = len(x_y) - train_size
 
-    perturbation_results = {perturb: np.zeros(len(values)) for perturb, values in perturbation_values}
+    x_y, _ = random_split(x_y, [train_size, val_size])
+    
+    dataloader = DataLoader(x_y, batch_size=1, shuffle=True)
+
+    perturbation_results = {perturb: np.zeros(len(values)) for perturb, values in perturbation_values.items()}
 
     with torch.no_grad():
         #1. Iterate over every image
-        for _, batch in enumerate(dataloader):
-            x, y, prompt = None
 
+        for i, batch in enumerate(dataloader):
+            # start = time.time()
             if args.nn_type == "CLIP":
                 (prompt, x, y, _) = batch
                 assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
                 prompt = prompt[0]
             else:
                 x, y = batch
-
-            # ground_truths = torch.argmax(y, dim=1) # N, W, H. No more channel component
 
             if args.nn_type == "CLIP":
                 torch_to_PIL = transforms.ToPILImage()
@@ -131,7 +149,8 @@ def main(args):
                 if func is None:
                     raise ValueError("Function is None! indexed non existing function in perturbation_functions")
                 
-                for i, value in enumerate(values):
+                for j, value in enumerate(values):
+                    assert type(value) == int or type(value) == float, f"Value must be a float or an int but is a {type(value)}"
                     perturbed_img : np.array = func(img, value)
                     #Convert image back to Image.RGB
                     perturbed_img = Image.fromarray(perturbed_img).convert("RGB")
@@ -141,16 +160,18 @@ def main(args):
                     y_pred_classes = torch.argmax(torch.softmax(logits, dim=1), dim=1)  # (N, W, H)
                     y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
 
-                    dice_score = dice(y_pred_one_hot.cpu().detach().numpy(), y.cpu().detach().numpy())
+                    dice_score = dice(y_pred_one_hot.numpy(), y.numpy())
 
-                    perturbation_results[perturbation][i] += dice_score
+                    perturbation_results[perturbation][j] += dice_score
+            
+            print('\rCalculated robustness for sample {}/{}'.
+                format(i + 1, len(dataloader)), end='')
 
-                    print('\rPredicted sample {}/{}: acc: {:.3f}, IoU : {:.3f}, Dice score: {:.3f}'.
-                        format(i + 1, n, acc_score, IoU_score, dice_score), end='')
-
-    for perturb, results in perturbation_results.items():
+    for perturb in perturbation_results.keys():
         ###Scaling by number of data points to get an average
-        results = results / float(len(dataloader))
+        perturbation_results[perturb] = perturbation_results[perturb] / float(len(dataloader))
+
+    display(perturbation_results=perturbation_results)
     return
 
 if __name__ == "__main__":
@@ -159,8 +180,9 @@ if __name__ == "__main__":
     parser.add_argument('--train', default=None, type=str, help="path to directory with train images")
     parser.add_argument('--label', default=None, type=str, help="path to directory with label images")
     parser.add_argument('--json', default=None, type=str, help="path json file to overwrite and save mapping to")
-    parser.add_argument('--model_file',default=None, type=str, help="path to .pth file with model parameters")
+    parser.add_argument('--load',default=None, type=str, help="path to .pth file with model parameters")
     parser.add_argument('--nn_type',default="CLIP", type=str, help="type of Neural Net being loaded")
+    parser.add_argument('--nn_batch_size', default = 1, type=int)
     
     args = parser.parse_args()
     if not(args.train) or not(args.label):

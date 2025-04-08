@@ -93,6 +93,7 @@ perturbation_functions = {
 }
 
 def display(perturbation_results : dict[str, np.array]) -> None:
+    
     for perturb, y in perturbation_results.items():
         x = perturbation_values[perturb]
         x = np.array(x)

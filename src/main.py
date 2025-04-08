@@ -39,19 +39,25 @@ def main(args):
     if args.nn_type == "CLIP":
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
         base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_test/")
-
-    elif args.nn_type == "prompt":
-        if args.test:
-            raise ValueError("Cannot test yet with prompt NN")
-        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/")
-        base_path_test = None
-        json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt.json")
     else:
         base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/")
         base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
+    
+    if args.prompt:
+        if args.nn_type == "CLIP":
+            json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt.json")
+            base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/")
+        elif args.nn_type == "unet":
+            json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt_unet.json")
+            base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_prompt/")
 
-    if args.nn_type == "prompt":
-        args.nn_type = "CLIP"
+            # json_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt_test.json")
+            # base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_prompt_test/")
+
+            base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
+        else:
+            raise ValueError("Prompt not implemented for another model")
+
 
     x_y_train = SegmentationDataset(
         Path(base_path / "train"), 
@@ -78,10 +84,12 @@ def main(args):
     ## 2. Make a validation set
     if not(args.cv_ratio >= 0 and args.cv_ratio <= 1):
         raise ValueError(f"cv_ratio must be between 0 and 1. Input = {args.cv_ratio}")
+
     train_size = int(args.cv_ratio * len(x_y_train))
     val_size = len(x_y_train) - train_size
 
-    x_y_train, x_y_val = random_split(x_y_train, [train_size, val_size])
+    generator = torch.Generator().manual_seed(seed)
+    x_y_train, x_y_val = random_split(x_y_train, [train_size, val_size],generator)
 
 
     ## 3. Selecting device (CPU/GPU)
@@ -119,7 +127,7 @@ def main(args):
         for param in model.encoder.parameters():
             param.requires_grad = False  # No gradients for encoder
     
-    elif args.nn_type == "CLIP" or args.nn_type == "prompt":
+    elif args.nn_type == "CLIP":
         if args.nn_batch_size != 1:
             raise ValueError("Batch size for CLIP must be 1")
         model = Clip()
@@ -168,7 +176,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--nn_type', default="unet",
-                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' | 'prompt'. Note that CLIP only works with a batch size of 1")
+                        help="which network architecture to use, it can be 'unet' | 'autoencoder' | autoencoder_segmentation | 'CLIP' Note that CLIP only works with a batch size of 1")
+    parser.add_argument('--prompt',action="store_true",default=False, help="Train on prompt dataset")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
     parser.add_argument('--device', type=str, default="cpu",
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")

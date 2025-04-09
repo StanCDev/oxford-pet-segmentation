@@ -82,22 +82,13 @@ def main(args):
             else:
                 y_pred = model.forward(x)
 
-            # print(f"Initially y_pred has shape {y_pred.shape}")
             y_pred_classes = torch.argmax(torch.softmax(y_pred, dim=1), dim=1)  # (N, W, H)
-            # y_pred_one_hot = F.one_hot(y_pred_classes, num_classes=3).permute(0, 3, 1, 2)  # (N, 3, W, H)
-            
-            # print(f"y_pred_classes has shape {y_pred_classes.shape}")
-            # y_pred_one_hot = y_pred_one_hot[0]
-
             y_pred_classes = resize_image(
                 y_pred_classes, 
                 (y_orig_res_shape[1], y_orig_res_shape[2]) if args.nn_type == "CLIP" else (y_orig_res_shape[2], y_orig_res_shape[3]), 
                 InterpolationMode.NEAREST
             )
 
-            # print(f"y_pred_classes has shape {y_pred_classes.shape}")
-
-            # y_pred_classes = y_pred_classes.unsqueeze(0)
             if args.nn_type == "CLIP":
                 y = y.unsqueeze(0)
                 gt_orig_res = gt_orig_res.unsqueeze(0)

@@ -59,35 +59,11 @@ def main(args):
     seed_everything(seed=seed)
 
     ## 1. Load data
-    base_path : Path = None
-    base_path_test : Path = None
-    
-    base_path_test_unresized = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Test/")
-    json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping.json")
-    json_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_test.json")
+    base_path : Path = Path(args.base_path)
+    base_path_test : Path = Path(args.base_path_test)
 
-    if args.nn_type == "CLIP":
-        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed/")
-        base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_test/")
-    else:
-        base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed/")
-        base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
-    
-    if args.prompt:
-        if args.nn_type == "CLIP":
-            json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt.json")
-            base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/CLIP_Processed_prompt/")
-        elif args.nn_type == "unet":
-            json_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt_unet.json")
-            base_path = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_prompt/")
-
-            # json_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/CV_mini_project/res/mapping_prompt_test.json")
-            # base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_prompt_test/")
-
-            base_path_test = Path("/Users/stancastellana/Desktop/UoE/Ba6/Computer_Vision/MP/Dataset/Processed_test/")
-        else:
-            raise ValueError("Prompt not implemented for another model")
-
+    json_path = Path(args.json)
+    json_path_test = Path(args.json_test)
 
     x_y_train = SegmentationDataset(
         Path(base_path / "train"), 
@@ -96,16 +72,9 @@ def main(args):
         nn_type=args.nn_type,
         )
     x_y_test = None
-    x_y_test_unresized = None
     if args.test:
         x_y_test = SegmentationDataset(
             Path(base_path_test / "train"),
-            Path(base_path_test / "label"),
-            json_path_test,
-            nn_type=args.nn_type,
-        )
-        x_y_test_unresized = SegmentationDataset(
-            Path(base_path_test / "color"),
             Path(base_path_test / "label"),
             json_path_test,
             nn_type=args.nn_type,
@@ -166,7 +135,6 @@ def main(args):
     ## 6. Saving and loading the model
     if args.save is not None:
         torch.save(model.state_dict(), args.save)
-    # np.save("predictions", preds)
     if args.train:
         plot_training_metrics(method_obj, show_val=args.evaluate_val)
     
@@ -191,6 +159,12 @@ if __name__ == '__main__':
     parser.add_argument('--train',action="store_true",default=False, help = "Train model")
     parser.add_argument('--test',action="store_true",default=False,help="Evaluate model on test dataset")
     parser.add_argument('--evaluate_val', action="store_true", help = "At every epoch, compute and store metrics on validation set")
+
+    ### Paths to datasets
+    parser.add_argument('--json',action="store_true",default=False, help = "Path to json file that contains mapping from into to data point (image) for training dataset, generated in preprocessing steps")
+    parser.add_argument('--json_test',action="store_true",default=False, help = "Path to json file that contains mapping from into to data point (image) for test dataset, generated in preprocessing steps")
+    parser.add_argument('--base_path',action="store_true",default=False, help = "Base directory for training data that must contain two sub directories train and label.")
+    parser.add_argument('--base_path_test',action="store_true",default=False, help = "Base directory for test data that must contain two sub directories train and label.")
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")

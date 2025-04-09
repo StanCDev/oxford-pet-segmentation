@@ -100,8 +100,6 @@ class AutoEncoder(nn.Module):
         self.decoder = Decoder(w = w, h = h, in_channels=in_channels, out_channels=out_channels, ch_mult=ch_mult, latent_space_dim=latent_space_dim)
 
     def forward(self, x):
-        # print(f"x shape before encoding = {x.shape}")
         z = self.encoder(x)
-        # print(f"x shape after encoding = {z.shape}")
         y = self.decoder(z)
         return y

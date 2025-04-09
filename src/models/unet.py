@@ -136,9 +136,7 @@ class UNet(nn.Module):
         y5 = self.conv5(y4)
 
         ## dim=0 means needs to have diff N dimensions but all other dims the same. dim=1 means ... ch ...
-        ###print(f"Here is the shape of x4 and y5: {x4.shape} , {y5.shape}")
         y5_up = self.conv_trans5(y5)
-        ###print(f"Here is the shape of x4 and y5_up: {x4.shape} , {y5_up.shape}")
         x4_y5 = torch.cat((x4, y5_up),dim=1)
         y6 = self.conv6(x4_y5)
 

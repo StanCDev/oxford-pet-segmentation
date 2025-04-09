@@ -7,12 +7,13 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchvision.transforms.functional import to_pil_image
 
 import matplotlib.pyplot as plt
 
 from models.dataset import SegmentationDataset
 from main import load_model
-from utils import dice, IoU
+from utils import dice, color_mask
 from torch.utils.data import random_split
 
 from PIL import Image
@@ -93,7 +94,6 @@ perturbation_functions = {
 }
 
 def display(perturbation_results : dict[str, np.array]) -> None:
-    
     for perturb, y in perturbation_results.items():
         x = perturbation_values[perturb]
         x = np.array(x)
@@ -116,7 +116,7 @@ def main(args):
         nn_type=args.nn_type,
         )
     
-    train_size = int(0.2 * len(x_y))
+    train_size = int(len(x_y))
     val_size = len(x_y) - train_size
 
     x_y, _ = random_split(x_y, [train_size, val_size])
@@ -125,11 +125,11 @@ def main(args):
 
     perturbation_results = {perturb: np.zeros(len(values)) for perturb, values in perturbation_values.items()}
 
+    model.eval()
     with torch.no_grad():
         #1. Iterate over every image
 
         for i, batch in enumerate(dataloader):
-            # start = time.time()
             if args.nn_type == "CLIP":
                 (prompt, x, y, _) = batch
                 assert len(prompt) == 1 and len(x) == 1 and len(y) == 1, "Must have batch size of 1"
@@ -154,7 +154,7 @@ def main(args):
                     assert type(value) == int or type(value) == float, f"Value must be a float or an int but is a {type(value)}"
                     perturbed_img : np.array = func(img, value)
                     #Convert image back to Image.RGB
-                    perturbed_img = Image.fromarray(perturbed_img).convert("RGB")
+                    perturbed_img : Image = Image.fromarray(perturbed_img).convert("RGB")
                     #get output mask
                     logits = model.forward(img, prompt)
                     #compare output mask with ground truth

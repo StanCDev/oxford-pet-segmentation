@@ -32,6 +32,7 @@ class SegmentationDataset(Dataset):
         self.accepted_exts = {".jpg", ".jpeg", ".png"}
         self.nn_type = nn_type
 
+        self.index_mapping = None
         with open(json_mapping_path, "r") as json_file:
             self.index_mapping = json.loads(json_file.read())
             self.index_mapping = {int(k): v for k, v in self.index_mapping.items()}
